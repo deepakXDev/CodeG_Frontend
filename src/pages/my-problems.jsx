@@ -24,7 +24,7 @@ const MyProblems = () => {
                 setProblems(data.data.problems);
                 setPagination(data.data.pagination);
             } else if (response.status === 403) {
-                window.showToast && window.showToast('Access denied. Only Problemsetters and Admins can view this page.', 'error');
+                window.showToast && window.showToast('Access denied. Only Problem_Setters and Admins can view this page.', 'error');
                 navigate('/dashboard');
             } else {
                 console.error('Failed to fetch problems');

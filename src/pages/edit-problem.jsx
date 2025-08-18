@@ -26,8 +26,8 @@ const EditProblem = () => {
             return;
         }
         
-        if (user?.accType !== 'Problemsetter' && user?.accType !== 'Admin') {
-            window.showToast && window.showToast('Access denied. Only Problemsetters and Admins can edit problems.', 'error');
+        if (user?.role !== 'Problem_Setter' && user?.role !== 'Admin') {
+            window.showToast && window.showToast('Access denied. Only Problem_Setters and Admins can edit problems.', 'error');
             navigate('/dashboard');
             return;
         }
@@ -163,7 +163,7 @@ const EditProblem = () => {
     }
 
     // Access control
-    if (user && user.accType !== 'Problemsetter' && user.accType !== 'Admin') {
+    if (user && user.role !== 'Problem_Setter' && user.role !== 'Admin') {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center pt-20 relative overflow-hidden">
                 {/* Background with blur effects */}
@@ -174,7 +174,7 @@ const EditProblem = () => {
                 
                 <div className="relative text-center">
                     <h2 className="text-2xl font-bold text-black mb-4">Access Denied</h2>
-                    <p className="text-gray-600 mb-6">Only Problemsetters and Admins can edit problems.</p>
+                    <p className="text-gray-600 mb-6">Only Problem_Setters and Admins can edit problems.</p>
                     <button 
                         onClick={() => navigate('/dashboard')}
                         className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300"

@@ -5,16 +5,17 @@ import { handleError, handleSuccess } from "../utils";
 import Hcaptchaa from "./hcaptchaa";
 
 export default function Register({ onToggleForm }) {
-  const [captchaToken, setCaptchaToken] = useState(null);
+  // const [captchaToken, setCaptchaToken] = useState(null);
+  const [captchaToken, setCaptchaToken] = useState('dummy');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const captchaRef = useRef(null);
 
   const [registerInfo, setRegisterInfo] = useState({
-    fullName: "",
-    username: "",
+    name: "",
+    // username: "",
     email: "",
     password: "",
-    accType: "User",
+    role: "User",
   });
 
   const handleChange = async (e) => {
@@ -40,8 +41,8 @@ export default function Register({ onToggleForm }) {
 
     if (isSubmitting) return;
 
-    const { fullName, username, email, password, accType } = registerInfo;
-    if (!fullName || !username || !email || !password || !accType) {
+    const { name, email, password, role } = registerInfo;
+    if (!name || !email || !password || !role) {
       return handleError("Please fill all fields");
     }
 
@@ -53,7 +54,7 @@ export default function Register({ onToggleForm }) {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/register`,
+        `${import.meta.env.VITE_BACKEND_URL}/auth/register`,
         {
           method: "POST",
           headers: {
@@ -66,10 +67,11 @@ export default function Register({ onToggleForm }) {
         }
       );
       const result = await response.json();
+      console.log(result);
       if (response.ok) {
         const accountTypeMessage =
-          registerInfo.accType === "Problemsetter"
-            ? "Problemsetter account created successfully! You can now create and manage coding problems."
+          registerInfo.role === "Problem_Setter"
+            ? "Problem_Setter account created successfully! You can now create and manage coding problems."
             : "User account created successfully!";
         handleSuccess(accountTypeMessage);
         setTimeout(() => {
@@ -106,18 +108,18 @@ export default function Register({ onToggleForm }) {
         <InputField
           icon={UserIcon}
           type="text"
-          name="fullName"
+          name="name"
           placeholder="Full Name"
           onChange={handleChange}
           autoFocus={true}
         />
-        <InputField
+        {/* <InputField
           icon={UserIcon}
           type="text"
           name="username"
           placeholder="Username"
           onChange={handleChange}
-        />
+        /> */}
         <InputField
           icon={MailIcon}
           type="email"
@@ -143,20 +145,20 @@ export default function Register({ onToggleForm }) {
           <div className="space-y-3">
             <div
               className={`flex items-start p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-                registerInfo.accType === "User"
+                registerInfo.role === "User"
                   ? "border-black bg-gray-100"
                   : "border-gray-300 hover:border-gray-500"
               }`}
               onClick={() =>
-                setRegisterInfo({ ...registerInfo, accType: "User" })
+                setRegisterInfo({ ...registerInfo, role: "User" })
               }
             >
               <input
                 type="radio"
                 id="user-type"
-                name="accType"
+                name="role"
                 value="User"
-                checked={registerInfo.accType === "User"}
+                checked={registerInfo.role === "User"}
                 onChange={handleChange}
                 className="mt-1 h-4 w-4 text-black focus:ring-gray-400 border-gray-400"
               />
@@ -181,30 +183,30 @@ export default function Register({ onToggleForm }) {
 
             <div
               className={`flex items-start p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-                registerInfo.accType === "Problemsetter"
+                registerInfo.role === "Problem_Setter"
                   ? "border-black bg-gray-100"
                   : "border-gray-300 hover:border-gray-500"
               }`}
               onClick={() =>
-                setRegisterInfo({ ...registerInfo, accType: "Problemsetter" })
+                setRegisterInfo({ ...registerInfo, role: "Problem_Setter" })
               }
             >
               <input
                 type="radio"
-                id="problemsetter-type"
-                name="accType"
-                value="Problemsetter"
-                checked={registerInfo.accType === "Problemsetter"}
+                id="problem_Setter-type"
+                name="role"
+                value="Problem_Setter"
+                checked={registerInfo.role === "Problem_Setter"}
                 onChange={handleChange}
                 className="mt-1 h-4 w-4 text-black focus:ring-gray-400 border-gray-400"
               />
               <div className="ml-3 flex-1">
                 <div className="flex items-center">
                   <label
-                    htmlFor="problemsetter-type"
+                    htmlFor="Problem_Setter-type"
                     className="text-sm font-medium text-black cursor-pointer"
                   >
-                    Problemsetter
+                    Problem Setter
                   </label>
                   <span className="ml-2 px-2 py-1 text-xs bg-black text-white rounded-full">
                     Creator
@@ -232,16 +234,17 @@ export default function Register({ onToggleForm }) {
           </div>
         </div>
 
-        <Hcaptchaa
+        {/* <Hcaptchaa
           ref={captchaRef}
           onVerify={handleCaptchaVerify}
           onExpire={handleCaptchaExpire}
           onError={handleCaptchaError}
-        />
+        /> */}
 
         <button
           type="submit"
-          disabled={!captchaToken || isSubmitting}
+          // disabled={!captchaToken || isSubmitting}
+          disabled={isSubmitting}
           className={`w-full py-3 rounded-lg transition duration-300 transform shadow-lg hover:shadow-xl mt-4 font-bold ${
             captchaToken && !isSubmitting
               ? "bg-black hover:bg-gray-800 text-white hover:scale-105"

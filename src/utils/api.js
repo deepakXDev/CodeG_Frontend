@@ -32,12 +32,12 @@ export const apiCall = async (endpoint, options = {}) => {
 
 // Specific function for checking authentication
 export const checkAuth = async () => {
-    return apiCall('/users/me', { method: 'GET' });
+    return apiCall('/auth/profile', { method: 'GET' });
 };
 
 // Function for creating problems
 export const createProblem = async (problemData) => {
-    return apiCall('/problems/create', {
+    return apiCall('/problems', {
         method: 'POST',
         body: JSON.stringify(problemData),
     });

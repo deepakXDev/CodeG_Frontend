@@ -8,12 +8,13 @@ const CreateProblem = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
-    description: "",
+    descriptionMarkdown: "",
     difficulty: "Easy",
     tags: [],
     timeLimit: 2000,
     memoryLimit: 256,
-    testcases: [{ input: "", output: "", visible: true }],
+    testCases: [{ input: "", output: "", isSample: true }],
+    // constraints: "",
   });
 
   useEffect(() => {
@@ -21,10 +22,10 @@ const CreateProblem = () => {
       navigate("/auth");
       return;
     }
-    if (user?.accType !== "Problemsetter" && user?.accType !== "Admin") {
+    if (user?.role !== "Problem_Setter" && user?.role !== "Admin") {
       window.showToast &&
         window.showToast(
-          "Access denied. Only Problemsetters and Admins can create problems.",
+          "Access denied. Only Problem_Setters and Admins can create problems.",
           "error"
         );
       navigate("/dashboard");
@@ -52,27 +53,27 @@ const CreateProblem = () => {
   };
 
   const handleTestcaseChange = (index, field, value) => {
-    const updatedTestcases = [...formData.testcases];
+    const updatedTestcases = [...formData.testCases];
     updatedTestcases[index][field] = value;
     setFormData((prev) => ({
       ...prev,
-      testcases: updatedTestcases,
+      testCases: updatedTestcases,
     }));
   };
 
   const addTestcase = () => {
     setFormData((prev) => ({
       ...prev,
-      testcases: [...prev.testcases, { input: "", output: "", visible: false }],
+      testCases: [...prev.testCases, { input: "", output: "", isSample: false }],
     }));
   };
 
   const removeTestcase = (index) => {
-    if (formData.testcases.length > 1) {
-      const updatedTestcases = formData.testcases.filter((_, i) => i !== index);
+    if (formData.testCases.length > 1) {
+      const updatedTestcases = formData.testCases.filter((_, i) => i !== index);
       setFormData((prev) => ({
         ...prev,
-        testcases: updatedTestcases,
+        testCases: updatedTestcases,
       }));
     }
   };
@@ -80,14 +81,14 @@ const CreateProblem = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.title.trim() || !formData.description.trim()) {
+    if (!formData.title.trim() || !formData.descriptionMarkdown.trim()) {
       window.showToast &&
         window.showToast("Please fill in all required fields.", "warning");
       return;
     }
 
     if (
-      formData.testcases.some((tc) => !tc.input.trim() || !tc.output.trim())
+      formData.testCases.some((tc) => !tc.input.trim() || !tc.output.trim())
     ) {
       window.showToast &&
         window.showToast("Please fill in all test cases.", "warning");
@@ -96,9 +97,9 @@ const CreateProblem = () => {
 
     try {
       setLoading(true);
-
+      console.log(formData);
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/problems/create`,
+        `${import.meta.env.VITE_BACKEND_URL}/problems`,
         {
           method: "POST",
           credentials: "include",
@@ -108,6 +109,7 @@ const CreateProblem = () => {
           body: JSON.stringify(formData),
         }
       );
+
 
       if (response.ok) {
         const data = await response.json();
@@ -130,13 +132,13 @@ const CreateProblem = () => {
     }
   };
 
-  if (user && user.accType !== "Problemsetter" && user.accType !== "Admin") {
+  if (user && user.role !== "Problem_Setter" && user.role !== "Admin") {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center pt-20">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-black mb-4">Access Denied</h2>
           <p className="text-gray-600 mb-6">
-            Only Problemsetters and Admins can create problems.
+            Only Problem_Setters and Admins can create problems.
           </p>
           <button
             onClick={() => navigate("/dashboard")}
@@ -215,7 +217,7 @@ const CreateProblem = () => {
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>
                   <option value="Hard">Hard</option>
-                  <option value="Extreme">Extreme</option>
+                  
                 </select>
               </div>
 
@@ -268,14 +270,14 @@ const CreateProblem = () => {
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-black mb-2">
-                Problem Description (Markdown supported) *
+                Problem Description && Constraints (Markdown supported) *
               </label>
               <textarea
-                name="description"
-                value={formData.description}
+                name="descriptionMarkdown"
+                value={formData.descriptionMarkdown}
                 onChange={handleInputChange}
                 rows="12"
-                placeholder="Enter the problem description in markdown format..."
+                placeholder="Enter the problem descriptionMarkdown in markdown format..."
                 className="w-full px-4 py-3 bg-gray-50 text-black rounded-lg border-2 border-gray-200 focus:border-black focus:outline-none transition-colors resize-none"
                 required
               />
@@ -297,7 +299,7 @@ const CreateProblem = () => {
               </div>
 
               <div className="space-y-4">
-                {formData.testcases.map((testcase, index) => (
+                {formData.testCases.map((testcase, index) => (
                   <div
                     key={index}
                     className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50"
@@ -310,11 +312,11 @@ const CreateProblem = () => {
                             (Sample - Visible to users)
                           </span>
                         )}
-                        {index > 0 && !testcase.visible && (
+                        {index > 0 && !testcase.isSample && (
                           <span className="text-gray-600 ml-2">(Hidden)</span>
                         )}
                       </h4>
-                      {formData.testcases.length > 1 && (
+                      {formData.testCases.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeTestcase(index)}
@@ -367,17 +369,17 @@ const CreateProblem = () => {
                         <label className="flex items-center text-sm text-gray-700">
                           <input
                             type="checkbox"
-                            checked={testcase.visible}
+                            checked={testcase.isSample}
                             onChange={(e) =>
                               handleTestcaseChange(
                                 index,
-                                "visible",
+                                "isSample",
                                 e.target.checked
                               )
                             }
                             className="mr-2 h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
                           />
-                          Make this test case visible to users
+                          Make this test case isSample to users
                         </label>
                       </div>
                     )}

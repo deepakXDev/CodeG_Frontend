@@ -13,7 +13,7 @@ This is the frontend component of the CodeJudge online judge platform. It's buil
   - Browse and search problems
   - Filter by difficulty and tags
   - Rich problem display with Markdown support
-  - Problem creation and editing for Problemsetters and Admins
+  - Problem creation and editing for Problem_Setters and Admins
 
 - **Code Submission**
   - Monaco Editor with syntax highlighting

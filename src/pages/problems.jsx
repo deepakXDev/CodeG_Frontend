@@ -49,9 +49,23 @@ const Problems = () => {
             });
 
             if (response.ok) {
-                const data = await response.json();
-                setProblems(data.data.problems);
-                setPagination(data.data.pagination);
+                const result = await response.json();
+                const data=result.data;
+                // setProblems(data.data.problems);
+                // setPagination(data.data.pagination);
+                 // ✅ Mongoose paginate returns `docs` not `problems`
+                setProblems(data.docs);
+                setPagination({
+                    totalPages: data.totalPages,
+                    totalDocs: data.totalDocs,
+                    currentPage: data.page,
+                    limit: data.limit,
+                    hasNext: data.hasNextPage,
+                    hasPrev: data.hasPrevPage,
+                    totalProblems: data.totalDocs
+                });
+                console.log(data);
+                
             } else {
                 console.error('Failed to fetch problems');
             }
@@ -179,7 +193,7 @@ const Problems = () => {
                                             </span>
                                             <span>Time: {problem.timeLimit}ms</span>
                                             <span>Memory: {problem.memoryLimit}MB</span>
-                                            <span>By: {problem.author?.fullName || problem.author?.username}</span>
+                                            <span>By: {problem.author?.fullName || problem.createdBy?.name}</span>
                                             <span>Created: {new Date(problem.createdAt).toLocaleDateString()}</span>
                                         </div>
                                     </div>
@@ -200,14 +214,14 @@ const Problems = () => {
                                 )}
 
                                 {/* Description Preview */}
-                                <div className="text-gray-700">
+                                {/* <div className="text-gray-700">
                                     <p className="line-clamp-2">
                                         {problem.description.length > 150 
                                             ? problem.description.replace(/[#*`]/g, '').substring(0, 150) + '...'
                                             : problem.description.replace(/[#*`]/g, '')
                                         }
                                     </p>
-                                </div>
+                                </div> */}
 
                                 <div className="mt-4 pt-4 border-t border-gray-300">
                                     <button className="text-black hover:text-gray-600 font-medium transition-colors border-b border-black hover:border-gray-600">

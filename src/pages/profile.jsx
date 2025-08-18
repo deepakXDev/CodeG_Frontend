@@ -210,7 +210,7 @@ const Profile = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-black mb-2">Account Type</label>
-                            <p className="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200 capitalize">{user.accType?.toLowerCase()}</p>
+                            <p className="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200 capitalize">{user.role?.toLowerCase()}</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-black mb-2">Member Since</label>

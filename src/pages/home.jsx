@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import AIFeatureModal from "../components/AIFeatureModal";
+import TweakWrapper from "../utils/TweakWrapper";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export default function Home() {
     const checkAuth = async () => {
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/users/me`,
+          `${import.meta.env.VITE_BACKEND_URL}/auth/profile`,
           {
             method: "GET",
             credentials: "include",
@@ -227,7 +228,7 @@ export default function Home() {
   ];
 
   return (
-    <>
+    <TweakWrapper><>
       <div className="min-h-screen bg-white">
         {/* Hero Section */}
         <div className="relative pt-20 pb-16 overflow-hidden">
@@ -743,6 +744,6 @@ export default function Home() {
         problemDescription={problemDescription}
         constraints={constraints}
       />
-    </>
+    </></TweakWrapper>
   );
 }

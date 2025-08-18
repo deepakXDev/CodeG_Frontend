@@ -11,7 +11,7 @@ export default function Login({ onToggleForm }) {
     email: '',
     password: ''
   });
-  const [captchaToken, setCaptchaToken] = useState(null);
+  const [captchaToken, setCaptchaToken] = useState('dummy');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const captchaRef = useRef(null);
   const navigate = useNavigate();
@@ -52,7 +52,7 @@ export default function Login({ onToggleForm }) {
     setIsSubmitting(true);
 
     try{
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/login`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ export default function Login({ onToggleForm }) {
       
       if (response.ok && result.success) {
         handleSuccess("Login successful!");
-        login(result.data.user);
+        login(result.user);
         
         setTimeout(() => {
           navigate('/dashboard');
@@ -84,6 +84,7 @@ export default function Login({ onToggleForm }) {
       }
     } catch(err) {
       handleError("Network error. Please check your connection and try again.");
+      console.log(err);
       // Reset captcha on error
       setCaptchaToken(null);
       if (captchaRef.current) {
@@ -121,17 +122,18 @@ export default function Login({ onToggleForm }) {
             Forgot Password?
           </a>
         </div>
-        
+{/*         
         <Hcaptchaa 
           ref={captchaRef}
           onVerify={handleCaptchaVerify}
           onExpire={handleCaptchaExpire}
           onError={handleCaptchaError}
-        />
+        /> */}
         
         <button
           type="submit"
-          disabled={!captchaToken || isSubmitting}
+          // disabled={!captchaToken || isSubmitting}
+          disabled={isSubmitting}
           className={`w-full mt-6 font-bold py-3 rounded-lg transition duration-300 transform shadow-lg hover:shadow-xl ${
             captchaToken && !isSubmitting
               ? 'bg-black hover:bg-gray-800 text-white hover:scale-105'

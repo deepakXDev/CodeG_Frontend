@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuthentication = async () => {
         try {
             setIsLoading(true);
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/me`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/profile`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
@@ -32,10 +32,13 @@ export const AuthProvider = ({ children }) => {
             });
                   
             const result = await response.json();
+            console.log(result);
             
-            if (response.ok && result.success && result.data) {
+            // if (response.ok && result.success && result.data) {
+            if (response.ok && result.success) {
                 setIsAuthenticated(true);
-                setUser(result.data);
+                console.log(isAuthenticated);
+                setUser(result.user);
                 // Remove localStorage usage for user data - rely only on cookies
                 
                 // Only redirect to dashboard if user is on auth page
@@ -44,6 +47,7 @@ export const AuthProvider = ({ children }) => {
                 }
             } else {
                 setIsAuthenticated(false);
+                console.log(isAuthenticated);
                 setUser(null);
                 // Remove localStorage cleanup since we're not using it
                 
@@ -79,8 +83,8 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             // Call backend logout to clear cookies
-            await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/logout`, {
-                method: 'POST',
+            await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/logout`, {
+                method: 'GET', //POST
                 credentials: 'include',
             });
         } catch (error) {
@@ -88,6 +92,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setIsAuthenticated(false);
             setUser(null);
+            console.log(user);
             // Remove localStorage cleanup since we're not using it
             navigate('/auth', { replace: true });
         }

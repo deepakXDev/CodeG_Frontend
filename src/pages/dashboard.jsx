@@ -6,15 +6,15 @@ function Dashboard() {
     const navigate = useNavigate();
     const { user: loggedInUser } = useAuth();
 
-    const getAccountTypeBadge = (accType) => {
-        switch (accType) {
-            case 'Problemsetter':
+    const getAccountTypeBadge = (role) => {
+        switch (role) {
+            case 'Problem_Setter':
                 return (
                     <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-black text-white border-2 border-gray-300">
                         <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        Problemsetter
+                        Problem_Setter
                     </span>
                 );
             case 'Admin':
@@ -48,10 +48,10 @@ function Dashboard() {
             {/* Welcome Section */}
             <div className="text-center mb-12">
                 <h1 className="text-5xl font-bold mb-6 text-black">
-                    Welcome back, {loggedInUser.fullName || 'User'}!
+                    Welcome back, {loggedInUser.name || 'User'}!
                 </h1>
                 <div className="flex justify-center mb-6">
-                    {getAccountTypeBadge(loggedInUser.accType)}
+                    {getAccountTypeBadge(loggedInUser.role)}
                 </div>
                 <p className="text-gray-600 text-xl">
                     Ready to continue your coding journey?
@@ -117,8 +117,8 @@ function Dashboard() {
                     </button>
                 </div>
 
-                {/* Problemsetter-specific cards */}
-                {(loggedInUser.accType === 'Problemsetter' || loggedInUser.accType === 'Admin') && (
+                {/* Problem_Setter-specific cards */}
+                {(loggedInUser.role === 'Problem_Setter' || loggedInUser.role === 'Admin') && (
                     <>
                         <div className="bg-black text-white rounded-lg p-8 border-2 border-gray-300 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 backdrop-blur-sm">
                             <div className="flex items-center mb-6">
@@ -160,7 +160,7 @@ function Dashboard() {
             </div>
 
             {/* Welcome message based on account type */}
-            {loggedInUser.accType === 'Problemsetter' && (
+            {loggedInUser.role === 'Problem_Setter' && (
                 <div className="bg-gray-50 rounded-lg p-8 border-2 border-black backdrop-blur-sm">
                     <div className="flex items-center mb-4">
                         <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center mr-3">
@@ -168,10 +168,10 @@ function Dashboard() {
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-black">Problemsetter Features</h3>
+                        <h3 className="text-xl font-bold text-black">Problem_Setter Features</h3>
                     </div>
                     <p className="text-gray-700 leading-relaxed">
-                        As a Problemsetter, you have special privileges to create and manage coding problems. 
+                        As a Problem_Setter, you have special privileges to create and manage coding problems. 
                         Help the community grow by contributing challenging and educational problems!
                     </p>
                 </div>

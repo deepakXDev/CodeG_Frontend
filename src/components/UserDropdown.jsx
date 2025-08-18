@@ -31,8 +31,8 @@ const UserDropdown = () => {
         setIsOpen(false);
         
         try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/logout`, {
-                method: 'POST',
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/logout`, {
+                method: 'GET', //POST
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
@@ -60,9 +60,9 @@ const UserDropdown = () => {
     };
 
     // Get user initials for avatar
-    const getUserInitials = (username) => {
-        if (!username) return 'U';
-        return username.slice(0, 2).toUpperCase();
+    const getUserInitials = (name) => {
+        if (!name) return 'U';
+        return name.slice(0, 2).toUpperCase();
     };
 
     if (!isAuthenticated) {
@@ -96,7 +96,7 @@ const UserDropdown = () => {
                             }}
                         />
                     ) : (
-                        <span>{getUserInitials(user?.username)}</span>
+                        <span>{getUserInitials(user?.name)}</span>
                     )}
                     {/* Fallback for broken images */}
                     {user?.avatar && user.avatar !== "https://www.svgrepo.com/show/452030/avatar-default.svg" && (
@@ -104,14 +104,14 @@ const UserDropdown = () => {
                             className="w-8 h-8 flex items-center justify-center text-white text-sm font-medium"
                             style={{ display: 'none' }}
                         >
-                            <span>{getUserInitials(user?.username)}</span>
+                            <span>{getUserInitials(user?.name)}</span>
                         </div>
                     )}
                 </div>
                 
                 {/* Username */}
                 <span className="hidden md:block text-sm font-medium">
-                    {user?.username || 'User'}
+                    {user?.name || 'User'}
                 </span>
 
                 {/* Dropdown Arrow */}
@@ -143,7 +143,7 @@ const UserDropdown = () => {
                                         }}
                                     />
                                 ) : (
-                                    <span>{getUserInitials(user?.username)}</span>
+                                    <span>{getUserInitials(user?.name)}</span>
                                 )}
                                 {/* Fallback for broken images */}
                                 {user?.avatar && user.avatar !== "https://www.svgrepo.com/show/452030/avatar-default.svg" && (
@@ -151,13 +151,13 @@ const UserDropdown = () => {
                                         className="w-10 h-10 flex items-center justify-center text-white font-medium"
                                         style={{ display: 'none' }}
                                     >
-                                        <span>{getUserInitials(user?.username)}</span>
+                                        <span>{getUserInitials(user?.name)}</span>
                                     </div>
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-black truncate">
-                                    {user?.username || 'User'}
+                                    {user?.name || 'User'}
                                 </p>
                                 <p className="text-sm text-gray-600 truncate">
                                     {user?.email || 'user@example.com'}
@@ -181,8 +181,8 @@ const UserDropdown = () => {
                             Account
                         </button>
 
-                        {/* Problem Management for Problemsetters and Admins */}
-                        {(user?.accType === 'Problemsetter' || user?.accType === 'Admin') && (
+                        {/* Problem Management for Problem_Setters and Admins */}
+                        {(user?.role === 'Problem_Setter' || user?.role === 'Admin') && (
                             <div className="border-t border-gray-200 mt-1 pt-1">
                                 <button
                                     onClick={() => {
