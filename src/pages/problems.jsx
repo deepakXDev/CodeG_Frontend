@@ -51,9 +51,6 @@ const Problems = () => {
             if (response.ok) {
                 const result = await response.json();
                 const data=result.data;
-                // setProblems(data.data.problems);
-                // setPagination(data.data.pagination);
-                 // ✅ Mongoose paginate returns `docs` not `problems`
                 setProblems(data.docs);
                 setPagination({
                     totalPages: data.totalPages,

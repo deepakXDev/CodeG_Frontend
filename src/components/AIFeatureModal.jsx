@@ -75,9 +75,7 @@ export default function AIFeatureModal({
         switch (feature) {
             case 'Hint': return 'AI Hint Generator';
             case 'Feedback': return 'AI Code Feedback';
-            case 'Explain': return 'AI Code Explainer';
-            case 'Complexity': return 'AI Complexity Analyzer';
-            default: return 'AI Code Analysis';
+            default: return 'Get feedback on your code quality, correctness, and improvements';
         }
     };
 
@@ -85,9 +83,7 @@ export default function AIFeatureModal({
         switch (feature) {
             case 'Hint': return 'Get strategic guidance and hints for solving your problem';
             case 'Feedback': return 'Get feedback on your code quality, correctness, and improvements';
-            case 'Explain': return 'Get detailed explanation of your code logic and algorithms';
-            case 'Complexity': return 'Analyze the time and space complexity of your code';
-            default: return 'Get AI-powered analysis of your code';
+            default: return 'Get feedback on your code quality, correctness, and improvements';
         }
     };
 

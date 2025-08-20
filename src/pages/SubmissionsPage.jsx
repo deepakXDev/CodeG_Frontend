@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SubmissionHistory from '../components/SubmissionHistory';
+import { useAuth } from '../contexts/AuthContext';
 
 const SubmissionsPage = () => {
+    const {user}=useAuth
     const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -13,13 +15,14 @@ const SubmissionsPage = () => {
 
     const fetchSubmissionStats = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submissions/stats`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submission/stats`, {
                 credentials: 'include'
             });
 
             if (response.ok) {
                 const data = await response.json();
                 setStats(data.data);
+                console.log(data.data);
             } else if (response.status === 401) {
                 navigate('/auth');
             }

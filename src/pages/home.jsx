@@ -163,20 +163,27 @@ export default function Home() {
       setOutput("Please write some code first!");
       return;
     }
-    setActiveTab("Output");
+
     setIsRunning(true);
     setOutput("> Running code...");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_COMPILER_URL}/run`, {
+      const compilerUrl = import.meta.env.VITE_COMPILER_URL;
+      if (!compilerUrl) {
+        throw new Error("Compiler URL is not defined in environment variables");
+      }
+
+      const response = await fetch(`${compilerUrl}/submission/run-sample`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          extension: selectedLanguage,
-          code: code,
-          input: customInput,
+          language: selectedLanguage,
+          sourceCode: code,
+
+          customInput:
+            customInput.trim() === "" ? "Hello, If no input.." : customInput,
         }),
       });
 
@@ -228,7 +235,7 @@ export default function Home() {
   ];
 
   return (
-    <TweakWrapper><>
+    <div>
       <div className="min-h-screen bg-white">
         {/* Hero Section */}
         <div className="relative pt-20 pb-16 overflow-hidden">
@@ -601,18 +608,6 @@ export default function Home() {
                         >
                           Feedback
                         </button>
-                        <button
-                          onClick={() => setShowLoginModal(true)}
-                          className="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium border border-purple-300"
-                        >
-                          Explain
-                        </button>
-                        <button
-                          onClick={() => setShowLoginModal(true)}
-                          className="px-3 py-2 bg-orange-100 text-orange-800 rounded-lg hover:bg-orange-200 transition-colors text-sm font-medium border border-orange-300"
-                        >
-                          ⚡ Complexity
-                        </button>
                       </div>
                       <div className="px-4 pb-4">
                         <p className="text-xs text-gray-500">
@@ -744,6 +739,6 @@ export default function Home() {
         problemDescription={problemDescription}
         constraints={constraints}
       />
-    </></TweakWrapper>
+    </div>
   );
 }

@@ -4,20 +4,20 @@ import Editor from "@monaco-editor/react";
 import AIReview from "../components/AIReview";
 import SubmissionHistory from "../components/SubmissionHistory";
 import { useAuth } from "../contexts/AuthContext";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function ProblemDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const {user}=useAuth();
+  const { user } = useAuth();
 
-  // Problem state
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [verdict, setVerdict] = useState(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  // Code editor states
   const [code, setCode] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("cpp");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,10 +27,8 @@ export default function ProblemDetail() {
   const [isRunning, setIsRunning] = useState(false);
   const [showAIReview, setShowAIReview] = useState(false);
 
-  // View toggle state
   const [showSubmissions, setShowSubmissions] = useState(false);
 
-  // Language options
   const languageOptions = [
     {
       value: "cpp",
@@ -61,7 +59,6 @@ export default function ProblemDetail() {
     },
   ];
 
-  // Get default code for language
   const getDefaultCode = (language) => {
     const lang = languageOptions.find((l) => l.value === language);
     return lang ? lang.defaultCode : "";
@@ -82,30 +79,26 @@ export default function ProblemDetail() {
     }
   };
 
-  // Get language for Monaco Editor
   const getMonacoLanguage = (language) => {
     const lang = languageOptions.find((l) => l.value === language);
     return lang ? lang.monacoLanguage : "javascript";
   };
-  // Handle language change
+
   const handleLanguageChange = (language) => {
     setSelectedLanguage(language);
     setCode(getDefaultCode(language));
   };
 
-  // Fetch problem data
   useEffect(() => {
     fetchProblem();
   }, [id]);
 
-  // Initialize code when language changes
   useEffect(() => {
     if (!code) {
       setCode(getDefaultCode(selectedLanguage));
     }
   }, [selectedLanguage]);
 
-  // Fetch user's last submission for this problem
   useEffect(() => {
     if (problem) {
       checkSubmissionStatus();
@@ -137,25 +130,26 @@ export default function ProblemDetail() {
   };
 
   const checkSubmissionStatus = async () => {
-      try {
-          // const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submission/problem/${id}?limit=1`, {
-        //   console.log(user._id);
-          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submission/user/${user._id}`, {
-              credentials: 'include'
-          });
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/submission/user/${user._id}`,
+        {
+          credentials: "include",
+        }
+      );
 
-          if (response.ok) {
-              const data = await response.json();
-              if (data.success && data.data?.submissions.length > 0) {
-                  const lastSubmission = data.data.submissions[0];
-                  setVerdict(lastSubmission.verdict);
-                  setHasSubmitted(true);
-                  setSubmitResult(lastSubmission); //**//
-              }
-          }
-      } catch (err) {
-          console.error('Error checking submission status:', err);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data?.submissions.length > 0) {
+          const lastSubmission = data.data.submissions[0];
+          setVerdict(lastSubmission.verdict);
+          setHasSubmitted(true);
+          setSubmitResult(lastSubmission); //**//
+        }
       }
+    } catch (err) {
+      console.error("Error checking submission status:", err);
+    }
   };
 
   const runCode = async () => {
@@ -168,7 +162,6 @@ export default function ProblemDetail() {
     setOutput("> Running code...");
 
     try {
-      // Ensure we're using the correct URL variable
       const compilerUrl = import.meta.env.VITE_COMPILER_URL;
       if (!compilerUrl) {
         throw new Error("Compiler URL is not defined in environment variables");
@@ -182,7 +175,7 @@ export default function ProblemDetail() {
         body: JSON.stringify({
           language: selectedLanguage,
           sourceCode: code,
-          // customInput: customInput
+
           customInput:
             customInput.trim() === "" ? "Hello, If no input.." : customInput,
         }),
@@ -200,67 +193,7 @@ export default function ProblemDetail() {
     } finally {
       setIsRunning(false);
     }
-  };
-
-  // const submitCode = async () => {
-  //     if (!code.trim()) {
-  //         window.showToast && window.showToast('Please write some code first!', 'warning');
-  //         return;
-  //     }
-
-  //     setIsSubmitting(true);
-  //     setSubmitResult(null);
-
-  //     try {
-  //         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submission`, {
-  //             method: 'POST',
-  //             headers: {
-  //                 'Content-Type': 'application/json',
-  //             },
-  //             body: JSON.stringify({
-  //                 problemId: id,
-  //                 language: selectedLanguage,
-  //                 code: code
-  //             }),
-  //             credentials: 'include'
-  //         });
-
-  //         const result = await response.json();
-
-  //         if (response.ok) {
-  //             setSubmitResult(result.data);
-  //             setVerdict(result.data.verdict);
-  //             setHasSubmitted(true);
-
-  //             // Show success/failure toast based on verdict
-  //             const verdictType = result.data.verdict === 'Accepted' ? 'success' : 'error';
-  //             window.showToast && window.showToast(
-  //                 `Submission completed! Verdict: ${result.data.verdict}`,
-  //                 verdictType,
-  //                 5000
-  //             );
-
-  //             // Refresh submission status
-  //             checkSubmissionStatus();
-  //         } else {
-  //             if (response.status === 401) {
-  //                 navigate('/auth');
-  //             } else {
-  //                 window.showToast && window.showToast(
-  //                     result.message || 'Submission failed',
-  //                     'error'
-  //                 );
-  //             }
-  //         }
-  //     } catch (error) {
-  //         window.showToast && window.showToast(
-  //             'Error submitting solution: ' + error.message,
-  //             'error'
-  //         );
-  //     } finally {
-  //         setIsSubmitting(false);
-  //     }
-  // };
+    };
 
   const submitCode = async () => {
     if (!code.trim()) {
@@ -273,7 +206,6 @@ export default function ProblemDetail() {
     setSubmitResult(null);
 
     try {
-      // Step 1: Submit code
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/submission`,
         {
@@ -297,24 +229,21 @@ export default function ProblemDetail() {
             window.showToast(result.message || "Submission failed", "error");
         return;
       }
-    //   console.log(result);
+
       if (result.success && result.submissionId) {
         const submissionId = result.submissionId;
 
-        // Step 2: Fetch verdict using submissionId
-        // const verdictData = await fetchSubmissionResult(submissionId);
-            
-        // Poll for final verdict, do not fetch immediately in one call
-    const verdictData = await fetchSubmissionWithPolling(submissionId);
+        const verdictData = await fetchSubmissionWithPolling(submissionId);
 
         if (verdictData) {
-            // console.log(verdictData);
           setSubmitResult(verdictData);
           setVerdict(verdictData.verdict);
           setHasSubmitted(true);
 
           const verdictType =
-            verdictData.verdict === 'Accepted' ? 'success' : `error:${verdictData.verdict}`;
+            verdictData.verdict === "Accepted"
+              ? "success"
+              : `error:${verdictData.verdict}`;
           window.showToast &&
             window.showToast(
               `Submission completed! Verdict: ${verdictData.verdict}`,
@@ -322,10 +251,8 @@ export default function ProblemDetail() {
               5000
             );
         } else {
-            window.showToast && window.showToast(
-                'Submission is still processing...',
-                'info'
-            );
+          window.showToast &&
+            window.showToast("Submission is still processing...", "info");
         }
       }
     } catch (error) {
@@ -339,10 +266,8 @@ export default function ProblemDetail() {
     }
   };
 
-  // Separate function to fetch submission result
   const fetchSubmissionResult = async (submissionId) => {
     try {
-        // console.log(submissionId);
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/submission/${submissionId}`,
         {
@@ -359,18 +284,21 @@ export default function ProblemDetail() {
     return null;
   };
 
-  const fetchSubmissionWithPolling = async (submissionId, retries = 10, delay = 500) => {
-  for (let i = 0; i < retries; i++) {
-    const data = await fetchSubmissionResult(submissionId);
-    // console.log(data);
-    if (!data) break;
-    if (data.verdict !== 'Pending') return data; //Its not PENDING
-    await new Promise(res => setTimeout(res, delay));
-  }
-  // After max retries, return latest state (maybe still PENDING)
-  return await fetchSubmissionResult(submissionId);
-};
+  const fetchSubmissionWithPolling = async (
+    submissionId,
+    retries = 10,
+    delay = 500
+  ) => {
+    for (let i = 0; i < retries; i++) {
+      const data = await fetchSubmissionResult(submissionId);
 
+      if (!data) break;
+      if (data.verdict !== "Pending") return data; //Its not PENDING
+      await new Promise((res) => setTimeout(res, delay));
+    }
+
+    return await fetchSubmissionResult(submissionId);
+  };
 
   const getVerdictText = (verdict) => {
     switch (verdict) {
@@ -640,9 +568,12 @@ export default function ProblemDetail() {
                     Problem Description
                   </h2>
                   <div className="text-gray-700 prose prose-gray max-w-none">
-                    <p className="whitespace-pre-wrap">
+                    {/* <p className="whitespace-pre-wrap">
                       {problem.descriptionMarkdown}
-                    </p>
+                    </p> */}
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {problem.descriptionMarkdown}
+                    </ReactMarkdown>
                   </div>
                 </div>
 

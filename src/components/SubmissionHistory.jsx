@@ -25,10 +25,10 @@ const SubmissionHistory = ({ problemId = null }) => {
     const fetchSubmissions = async () => {
         setLoading(true);
         try {
-            let url = `${import.meta.env.VITE_BACKEND_URL}/submissions?page=${currentPage}&limit=10`;
+            let url = `${import.meta.env.VITE_BACKEND_URL}/submission?page=${currentPage}&limit=10`;
 
             if (problemId) {
-                url = `${import.meta.env.VITE_BACKEND_URL}/submissions/problem/${problemId}?page=${currentPage}&limit=10`;
+                url = `${import.meta.env.VITE_BACKEND_URL}/submission/problem/${problemId}?page=${currentPage}&limit=10`;
             }
             
             if (verdictFilter) {
@@ -42,7 +42,9 @@ const SubmissionHistory = ({ problemId = null }) => {
             const data = await response.json();
             
             if (data.success) {
-                setSubmissions(data.data.submissions);
+                setSubmissions(data.data.submissions.docs);
+                // console.log(url);
+                // console.log(data.data.submissions.docs);
                 setTotalPages(data.data.totalPages);
             }
         } catch (error) {
@@ -54,7 +56,7 @@ const SubmissionHistory = ({ problemId = null }) => {
 
     const fetchSubmissionDetails = async (submissionId) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submissions/${submissionId}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submission/${submissionId}`, {
                 credentials: 'include'
             });
 
@@ -62,6 +64,7 @@ const SubmissionHistory = ({ problemId = null }) => {
             
             if (data.success) {
                 setSelectedSubmission(data.data);
+                console.log(data.data);
             }
         } catch (error) {
             console.error('Error fetching submission details:', error);
@@ -297,7 +300,7 @@ const SubmissionHistory = ({ problemId = null }) => {
                                 Problem
                             </h4>
                             <p className="text-gray-600">
-                                {selectedSubmission.problemId?.title}
+                                {selectedSubmission.problem.title}
                             </p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
@@ -318,7 +321,7 @@ const SubmissionHistory = ({ problemId = null }) => {
                             Code ({selectedSubmission.language.toUpperCase()})
                         </h4>
                         <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm font-mono text-black border-2 border-gray-200">
-                            {selectedSubmission.code}
+                            {selectedSubmission.sourceCode}
                         </pre>
                     </div>
 
