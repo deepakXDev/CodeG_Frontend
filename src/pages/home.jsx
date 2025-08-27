@@ -107,9 +107,51 @@ export default function Home() {
     }));
   }, []);
 
-  const runCode = useCallback(async () => {
-    // ... (Your existing runCode logic, using setEditor to update state)
-  }, [editor.code, editor.language, editor.customInput]);
+
+const runCode = useCallback(async () => {
+  if (!editor.code.trim()) {
+    setEditor(prev => ({ ...prev, output: "Please write some code first!" }));
+    return;
+  }
+
+  // Update multiple keys in the editor state
+  setEditor(prev => ({ ...prev, isRunning: true, output: "> Running code..." }));
+
+  try {
+    const compilerUrl = import.meta.env.VITE_COMPILER_URL;
+    if (!compilerUrl) {
+      throw new Error("Compiler URL is not defined in environment variables");
+    }
+
+    const response = await fetch(`${compilerUrl}/submission/run-sample`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        // Read values from the editor state
+        language: editor.language,
+        sourceCode: editor.code,
+        customInput:
+          editor.customInput.trim() === "" ? "Hello, If no input.." : editor.customInput,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      const newOutput = result.output !== undefined ? result.output : "Execution finished, but no output was produced.";
+      setEditor(prev => ({ ...prev, output: newOutput }));
+    } else {
+      const errorMessage = result.error || result.stderr || "An unknown error occurred";
+      setEditor(prev => ({ ...prev, output: `Error: ${errorMessage}` }));
+    }
+  } catch (error) {
+    setEditor(prev => ({ ...prev, output: `Error: ${error.message}` }));
+  } finally {
+    setEditor(prev => ({ ...prev, isRunning: false }));
+  }
+}, [editor.code, editor.language, editor.customInput, setEditor]); // The dependency array now includes setEditor
 
   const handleGetStarted = useCallback(() => {
     navigate(auth.isAuthenticated ? "/dashboard" : "/auth");
