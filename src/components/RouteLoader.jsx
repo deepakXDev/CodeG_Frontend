@@ -2,71 +2,65 @@ import React from 'react';
 
 const RouteLoader = ({ message = "Loading..." }) => {
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center relative overflow-hidden">
-            {/* Background Effects - matching website theme */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white"></div>
-            <div className="absolute inset-0 backdrop-blur-sm"></div>
-            
-            {/* Decorative grid pattern */}
-            <div className="absolute inset-0 bg-white bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-            
-            {/* Floating elements for visual appeal */}
-            <div className="absolute left-1/4 top-1/4 w-[200px] h-[200px] rounded-full bg-black opacity-5 blur-[80px] animate-pulse"></div>
-            <div className="absolute right-1/4 bottom-1/4 w-[150px] h-[150px] rounded-full bg-gray-400 opacity-10 blur-[60px] animate-pulse"></div>
-            
+        <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center relative overflow-hidden font-sans">
+            {/* Background Gradient Effect */}
+            <div className="absolute top-1/2 left-1/2 w-[800px] h-[800px] -translate-x-1/2 -translate-y-1/2 bg-radial-gradient from-purple-900/20 via-transparent to-transparent pointer-events-none"></div>
+
             {/* Main loading content */}
-            <div className="relative z-10 text-center animate-fade-in">
-                {/* Animated spinner */}
-                <div className="relative mb-8">
-                    {/* Outer ring */}
-                    <div className="w-16 h-16 border-4 border-gray-200 rounded-full animate-spin mx-auto">
-                        <div className="w-full h-full border-4 border-transparent border-t-black rounded-full"></div>
-                    </div>
-                    
-                    {/* Inner dot */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                        <div className="w-3 h-3 bg-black rounded-full animate-pulse"></div>
-                    </div>
+            <div className="relative z-10 text-center flex flex-col items-center">
+                
+                {/* Animated Rings Spinner */}
+                <div className="relative w-24 h-24 flex items-center justify-center mb-8">
+                    {/* Ring 1 (Outer) */}
+                    <div className="absolute w-full h-full rounded-full border-2 border-purple-500/30 animate-ping-slow opacity-50"></div>
+                    {/* Ring 2 (Inner) */}
+                    <div className="absolute w-2/3 h-2/3 rounded-full border-2 border-purple-500/50 animate-ping-slower opacity-75"></div>
+                    {/* Central Glow */}
+                    <div className="w-4 h-4 bg-purple-400 rounded-full shadow-[0_0_15px_rgba(192,132,252,0.7)]"></div>
                 </div>
                 
                 {/* Loading text */}
-                <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-black animate-pulse">
+                <div className="space-y-3">
+                    <h2 className="text-2xl font-bold text-white animate-pulse" style={{ animationDelay: '200ms' }}>
                         {message}
                     </h2>
-                    <div className="flex items-center justify-center space-x-1">
-                        <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                        <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                        <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                    <div className="flex items-center justify-center space-x-1.5">
+                        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '200ms'}}></div>
+                        <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{animationDelay: '400ms'}}></div>
                     </div>
                 </div>
                 
                 {/* Brand identifier */}
-                <div className="mt-8 animate-fade-in-delayed">
+                <div className="absolute top-full mt-12">
                     <p className="text-gray-600 text-sm font-medium">
-                        <span className="border-b-2 border-black">CodeJudge</span>
+                        <span className="bg-gradient-to-r from-purple-400 to-indigo-400 text-transparent bg-clip-text font-bold">CodeG</span>
                     </p>
                 </div>
             </div>
             
-            {/* Custom CSS for smooth animations */}
+            {/* Custom CSS for animations (if not in tailwind.config.js) */}
             <style jsx="true">{`
-                @keyframes fade-in {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
+                @keyframes ping-slow {
+                    75%, 100% {
+                        transform: scale(1.5);
+                        opacity: 0;
+                    }
                 }
-                
-                @keyframes fade-in-delayed {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
+                @keyframes ping-slower {
+                    75%, 100% {
+                        transform: scale(1.8);
+                        opacity: 0;
+                    }
                 }
-                
-                .animate-fade-in {
-                    animation: fade-in 0.6s ease-out;
+                .animate-ping-slow {
+                    animation: ping-slow 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
                 }
-                
-                .animate-fade-in-delayed {
-                    animation: fade-in-delayed 0.8s ease-out 0.3s both;
+                .animate-ping-slower {
+                    animation: ping-slower 2.5s cubic-bezier(0, 0, 0.2, 1) infinite 0.5s;
+                }
+                .bg-radial-gradient {
+                    background-image: radial-gradient(circle, var(--tw-gradient-stops));
                 }
             `}</style>
         </div>

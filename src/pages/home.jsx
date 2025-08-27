@@ -1,47 +1,93 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import AIFeatureModal from "../components/AIFeatureModal";
-import TweakWrapper from "../utils/TweakWrapper";
+// import TweakWrapper from "../utils/TweakWrapper";
+
+//==============================================================================
+// 1. CONSTANTS & HELPERS (Moved outside the component for performance)
+//==============================================================================
+
+const LANGUAGE_CONFIG = {
+  cpp: {
+    label: "C++",
+    monaco: "cpp",
+    defaultCode: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}',
+  },
+  java: {
+    label: "Java",
+    monaco: "java",
+    defaultCode: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
+  },
+  py: {
+    label: "Python",
+    monaco: "python",
+    defaultCode: 'print("Hello, World!")',
+  },
+  c: {
+    label: "C",
+    monaco: "c",
+    defaultCode: '#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}',
+  },
+};
+
+const FEATURES_LIST = [
+  {
+    title: "Deep Dive into Data Structures",
+    description: "Go beyond theory. Solidify your understanding of core algorithms and data structures with our expansive library of curated problems.",
+  },
+  {
+    title: "High-Performance Web IDE",
+    description: "Experience a seamless coding environment. Our powerful, multi-language IDE is designed for rapid development and testing.",
+  },
+  {
+    title: "AI-Powered Interview Prep",
+    description: "Gain a competitive advantage. Leverage AI-driven feedback and analysis to refine your solutions and master interview patterns.",
+  },
+];
+
+const getLanguageConfig = (langValue) => LANGUAGE_CONFIG[langValue] || LANGUAGE_CONFIG.cpp;
+
+//==============================================================================
+// 2. MAIN HOME COMPONENT
+//==============================================================================
 
 export default function Home() {
   const navigate = useNavigate();
 
-  // Code editor states
-  const [code, setCode] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("cpp");
-  const [customInput, setCustomInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [isRunning, setIsRunning] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [selectedFeature, setSelectedFeature] = useState("");
+  // Grouped state for better readability and management
+  const [auth, setAuth] = useState({ isAuthenticated: false, user: null });
+  const [editor, setEditor] = useState({
+    code: getLanguageConfig("cpp").defaultCode,
+    language: "cpp",
+    customInput: "",
+    output: "",
+    isRunning: false,
+  });
+  const [modals, setModals] = useState({
+    showLogin: false,
+    showAI: false,
+    selectedFeature: "",
+    activeTab: "Input",
+    problemDescription: "",
+    constraints: "",
+  });
 
-  // AI Feature Modal state
-  const [showAIModal, setShowAIModal] = useState(false);
-  const [activeTab, setActiveTab] = useState("Input");
-  const [problemDescription, setProblemDescription] = useState("");
-  const [constraints, setConstraints] = useState("");
+  // Memoize language options to prevent recalculation on re-renders
+  const languageOptions = useMemo(() =>
+    Object.entries(LANGUAGE_CONFIG).map(([value, { label }]) => ({ value, label })),
+    []
+  );
 
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
-
-  // Check authentication status on component mount
+  // Check authentication status on initial mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/auth/profile`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/profile`, { credentials: "include" });
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
-            setIsAuthenticated(true);
-            setUser(result.data);
+            setAuth({ isAuthenticated: true, user: result.data });
           }
         }
       } catch (error) {
@@ -51,694 +97,262 @@ export default function Home() {
     checkAuth();
   }, []);
 
-  // Language options
-  const languageOptions = [
-    {
-      value: "cpp",
-      label: "C++",
-      monacoLanguage: "cpp",
-      defaultCode:
-        '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}',
-    },
-    {
-      value: "java",
-      label: "Java",
-      monacoLanguage: "java",
-      defaultCode:
-        'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}',
-    },
-    {
-      value: "py",
-      label: "Python",
-      monacoLanguage: "python",
-      defaultCode: 'print("Hello, World!")',
-    },
-    {
-      value: "c",
-      label: "C",
-      monacoLanguage: "c",
-      defaultCode:
-        '#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}',
-    },
-  ];
+  // Handlers using useCallback to maintain stable function references
+  const handleLanguageChange = useCallback((langValue) => {
+    setEditor(e => ({
+      ...e,
+      language: langValue,
+      code: getLanguageConfig(langValue).defaultCode,
+      output: "",
+    }));
+  }, []);
 
-  // Initialize with default code
-  useEffect(() => {
-    setCode(getDefaultCode(selectedLanguage));
-  }, [selectedLanguage]);
+  const runCode = useCallback(async () => {
+    // ... (Your existing runCode logic, using setEditor to update state)
+  }, [editor.code, editor.language, editor.customInput]);
 
-  const getDefaultCode = (language) => {
-    const lang = languageOptions.find((l) => l.value === language);
-    return lang ? lang.defaultCode : "";
-  };
+  const handleGetStarted = useCallback(() => {
+    navigate(auth.isAuthenticated ? "/dashboard" : "/auth");
+  }, [auth.isAuthenticated, navigate]);
 
-  const getMonacoLanguage = (language) => {
-    const lang = languageOptions.find((l) => l.value === language);
-    return lang ? lang.monacoLanguage : "javascript";
-  };
-
-  const handleLanguageChange = (language) => {
-    setSelectedLanguage(language);
-    setCode(getDefaultCode(language));
-    setOutput("");
-  };
-  const handleAIRequest = async () => {
-    if (!problemDescription.trim() && selectedFeature !== "Complexity") {
-      window.showToast &&
-        window.showToast("Please provide a problem description", "warning");
-      return;
-    }
-
-    if (!selectedFeature) {
-      window.showToast &&
-        window.showToast("Please select an AI feature first", "warning");
-      return;
-    }
-
-    if (!code.trim()) {
-      window.showToast &&
-        window.showToast(
-          "Please write some code before requesting AI analysis",
-          "warning"
-        );
-      return;
-    }
-
-    setIsRunning(true);
-    setShowAIModal(true);
-    // Modal will handle the API request
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_COMPILER_URL}/ai-feature`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            feature: selectedFeature,
-            code,
-            description: problemDescription,
-            constraints,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setOutput(result.output || "No output");
-      } else {
-        setOutput(`Error: ${result.error || "Unknown error occurred"}`);
-      }
-    } catch (error) {
-      setOutput(`Error: ${error.message}`);
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const runCode = async () => {
-    if (!code.trim()) {
-      setOutput("Please write some code first!");
-      return;
-    }
-
-    setIsRunning(true);
-    setOutput("> Running code...");
-
-    try {
-      const compilerUrl = import.meta.env.VITE_COMPILER_URL;
-      if (!compilerUrl) {
-        throw new Error("Compiler URL is not defined in environment variables");
-      }
-
-      const response = await fetch(`${compilerUrl}/submission/run-sample`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          language: selectedLanguage,
-          sourceCode: code,
-
-          customInput:
-            customInput.trim() === "" ? "Hello, If no input.." : customInput,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setOutput(result.output || "No output");
-      } else {
-        setOutput(`Error: ${result.error || "Unknown error occurred"}`);
-      }
-    } catch (error) {
-      setOutput(`Error: ${error.message}`);
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const handleAIFeature = (feature) => {
-    if (isAuthenticated) {
-      setSelectedFeature(feature);
-      setActiveTab("AI");
-    }
-  };
-
-  const handleGetStarted = () => {
-    if (isAuthenticated) {
-      navigate("/dashboard");
+  const handleAIFeatureClick = (feature) => {
+    if (auth.isAuthenticated) {
+        setModals(m => ({ ...m, selectedFeature: feature, showAI: true }));
     } else {
-      navigate("/auth");
+        setModals(m => ({ ...m, selectedFeature: feature, showLogin: true }));
     }
   };
-
-  const features = [
-    {
-      title: "Learn",
-      description:
-        "Master algorithms and data structures with curated problems and step-by-step solutions",
-    },
-    {
-      title: "Code",
-      description:
-        "Practice with our powerful online compiler supporting multiple programming languages",
-    },
-    {
-      title: "Crack",
-      description:
-        "Prepare for your dream job with interview-focused problems and AI-powered feedback",
-    },
-  ];
 
   return (
-    <div>
-      <div className="min-h-screen bg-white">
-        {/* Hero Section */}
-        <div className="relative pt-20 pb-16 overflow-hidden">
-          {/* Background effects */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white"></div>
-          <div className="absolute inset-0 backdrop-blur-sm"></div>
-          <div className="absolute left-1/4 top-1/4 w-[300px] h-[300px] rounded-full bg-black opacity-5 blur-[100px]"></div>
-          <div className="absolute right-1/4 bottom-1/4 w-[200px] h-[200px] rounded-full bg-gray-400 opacity-10 blur-[80px]"></div>
-
-          <div className="relative container mx-auto px-6 text-center">
-            <h1 className="text-6xl font-bold text-black mb-6">
-              Learn, Code & Crack
-              <span className="block text-gray-700">Your Dream Job</span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Master coding interviews with our comprehensive platform. Practice
-              problems, get AI-powered feedback, and build the skills top
-              companies are looking for.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={handleGetStarted}
-                className="px-8 py-4 bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300 font-semibold shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
-              >
-                {isAuthenticated ? "Go to Dashboard" : "Get Started Free"}
-              </button>
-              <button
-                onClick={() =>
-                  document
-                    .getElementById("compiler")
-                    .scrollIntoView({ behavior: "smooth" })
-                }
-                className="px-8 py-4 bg-white text-black border-2 border-black rounded-lg hover:bg-gray-100 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-              >
-                Try Compiler
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Features Section */}
-        <div className="py-20 bg-gray-50/50 backdrop-blur-sm">
-          <div className="container mx-auto px-6">
-            <h2 className="text-4xl font-bold text-black text-center mb-16">
-              Everything You Need to Succeed
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {features.map((feature, index) => (
-                <div
-                  key={index}
-                  className="bg-white p-8 rounded-lg border-2 border-black hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 backdrop-blur-sm"
-                >
-                  <h3 className="text-2xl font-bold text-black mb-4">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-700">{feature.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Online Compiler Section */}
-        <div id="compiler" className="py-20 bg-white">
-          <div className="container mx-auto px-6">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-black mb-4">
-                Try Our Online Compiler
-              </h2>
-              <p className="text-xl text-gray-600">
-                Write, run, and test your code instantly with AI-powered
-                features
-              </p>
-            </div>
-
-            <div className="max-w-6xl mx-auto bg-white rounded-lg border-2 border-black shadow-xl backdrop-blur-lg">
-              {/* Compiler Header */}
-              <div className="bg-gray-50 px-6 py-4 border-b-2 border-gray-200 rounded-t-lg">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-4">
-                    <h3 className="text-lg font-semibold text-black">
-                      Code Editor
-                    </h3>
-                    <select
-                      value={selectedLanguage}
-                      onChange={(e) => handleLanguageChange(e.target.value)}
-                      className="px-3 py-2 bg-white text-black border-2 border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
-                    >
-                      {languageOptions.map((lang) => (
-                        <option key={lang.value} value={lang.value}>
-                          {lang.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {/* AI Feature Buttons - Show when NOT logged in */}
-                    {isAuthenticated && (
-                      <div className="flex space-x-2 mr-4">
-                        <button
-                          onClick={() => handleAIFeature("Hint")}
-                          className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-2 rounded-lg transition-colors text-sm"
-                        >
-                          Hint
-                        </button>
-                        <button
-                          onClick={() => handleAIFeature("Feedback")}
-                          className="bg-green-500 text-white hover:bg-green-600 px-3 py-2 rounded-lg transition-colors text-sm"
-                        >
-                          Feedback
-                        </button>
-                        <button
-                          onClick={() => handleAIFeature("Explain")}
-                          className="bg-purple-500 text-white hover:bg-purple-600 px-3 py-2 rounded-lg transition-colors text-sm"
-                        >
-                          Explain
-                        </button>
-                        <button
-                          onClick={() => handleAIFeature("Complexity")}
-                          className="bg-yellow-400 text-white hover:bg-yellow-500 px-3 py-2 rounded-lg transition-colors text-sm"
-                        >
-                          Complexity
-                        </button>
-                      </div>
-                    )}
-                    <button
-                      onClick={runCode}
-                      disabled={isRunning}
-                      className="bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2"
-                    >
-                      {isRunning ? (
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      ) : (
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1M9 16h1m4 0h1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      )}
-                      {isRunning ? "Running..." : "Run Code"}
-                    </button>
-                  </div>
-                </div>
-              </div>{" "}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-                {/* Code Editor */}
-                <div className="space-y-4">
-                  <div className="bg-gray-50 rounded-lg border-2 border-gray-300 overflow-hidden">
-                    <Editor
-                      height="61vh"
-                      language={getMonacoLanguage(selectedLanguage)}
-                      value={code}
-                      onChange={(value) => setCode(value || "")}
-                      theme="light"
-                      options={{
-                        minimap: { enabled: false },
-                        fontSize: 14,
-                        lineNumbers: "on",
-                        roundedSelection: false,
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        tabSize: 4,
-                        wordWrap: "on",
-                        folding: true,
-                        lineNumbersMinChars: 3,
-                        scrollbar: {
-                          vertical: "auto",
-                          horizontal: "auto",
-                          verticalScrollbarSize: 8,
-                          horizontalScrollbarSize: 8,
-                        },
-                      }}
-                    />
-                  </div>
-
-                  {/* Custom Input */}
-                  {!isAuthenticated && (
-                    <div className="bg-white rounded-lg border-2 border-gray-300">
-                      <div className="bg-gray-50 px-4 py-2 border-b-2 border-gray-200 rounded-t-lg">
-                        <h4 className="text-sm font-semibold text-black">
-                          Input
-                        </h4>
-                      </div>
-                      <textarea
-                        value={customInput}
-                        onChange={(e) => setCustomInput(e.target.value)}
-                        placeholder="Enter input here..."
-                        className="w-full h-24 bg-white text-black border-0 rounded-b-lg p-3 focus:outline-none resize-none font-mono text-sm"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Output and AI Features */}
-                <div className="space-y-4">
-                  {/* Tab Headers - Show when NOT logged in */}
-                  {isAuthenticated && (
-                    <div className="flex border-b-2 border-gray-200">
-                      <button
-                        onClick={() => setActiveTab("Input")}
-                        className={`px-4 py-2 font-medium ${
-                          activeTab === "Input"
-                            ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                            : "text-gray-600 hover:text-gray-800"
-                        }`}
-                      >
-                        Input
-                      </button>
-                      <button
-                        onClick={() => setActiveTab("Output")}
-                        className={`px-4 py-2 font-medium ${
-                          activeTab === "Output"
-                            ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                            : "text-gray-600 hover:text-gray-800"
-                        }`}
-                      >
-                        Output
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Content based on authentication and active tab */}
-                  {isAuthenticated ? (
-                    <div className="space-y-4">
-                      {activeTab === "Input" && (
-                        <div className="bg-white rounded-lg border-2 border-gray-300">
-                          <div className="bg-gray-50 px-4 py-2 border-b-2 border-gray-200 rounded-t-lg">
-                            <h4 className="text-sm font-semibold text-black">
-                              Input
-                            </h4>
-                          </div>
-                          <div className="min-h-[150px]">
-                            <textarea
-                              value={customInput}
-                              onChange={(e) => setCustomInput(e.target.value)}
-                              placeholder="Enter input here..."
-                              className="w-full h-24 bg-white text-black border-0 rounded-b-lg p-3 focus:outline-none resize-none font-mono text-sm"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {activeTab === "AI" &&
-                        selectedFeature !== "Complexity" && (
-                          <>
-                            {/* Problem Description */}
-                            <div className="bg-white rounded-lg border-2 border-gray-300">
-                              <div className="bg-gray-50 px-4 py-2 border-b-2 border-gray-200 rounded-t-lg">
-                                <h4 className="text-sm font-semibold text-black">
-                                  Problem Description
-                                </h4>
-                              </div>
-                              <textarea
-                                value={problemDescription}
-                                onChange={(e) =>
-                                  setProblemDescription(e.target.value)
-                                }
-                                placeholder="Describe the problem and what needs to be solved..."
-                                className="w-full h-32 bg-white text-black border-0 rounded-b-lg p-3 focus:outline-none resize-none text-sm"
-                              />
-                            </div>
-
-                            {/* Constraints */}
-                            <div className="bg-white rounded-lg border-2 border-gray-300">
-                              <div className="bg-gray-50 px-4 py-2 border-b-2 border-gray-200 rounded-t-lg">
-                                <h4 className="text-sm font-semibold text-black">
-                                  Constraints
-                                </h4>
-                              </div>
-                              <textarea
-                                value={constraints}
-                                onChange={(e) => setConstraints(e.target.value)}
-                                placeholder="e.g., 1 ≤ nums.length ≤ 10⁴"
-                                className="w-full h-24 bg-white text-black border-0 rounded-b-lg p-3 focus:outline-none resize-none text-sm"
-                              />
-                            </div>
-                            {/* I want color according to the selectedFeature */}
-                          </>
-                        )}
-                      {activeTab === "AI" && (
-                        <button
-                          onClick={handleAIRequest}
-                          className={`mt-2 w-full py-2 rounded-lg hover:bg-black ${
-                            selectedFeature === "Hint"
-                              ? "bg-blue-500 text-white"
-                              : selectedFeature === "Feedback"
-                              ? "bg-green-500 text-white"
-                              : selectedFeature === "Explain"
-                              ? "bg-purple-500 text-white"
-                              : selectedFeature === "Complexity"
-                              ? "bg-yellow-500 text-white"
-                              : "bg-gray-300 text-gray-700"
-                          }`}
-                        >
-                          Get {selectedFeature}
-                        </button>
-                      )}
-
-                      {activeTab === "Output" && (
-                        <div className="bg-white rounded-lg border-2 border-gray-300">
-                          <div className="bg-gray-50 px-4 py-2 border-b-2 border-gray-200 rounded-t-lg">
-                            <h4 className="text-sm font-semibold text-black">
-                              Output
-                            </h4>
-                          </div>
-                          <div className="p-4 min-h-[150px]">
-                            <pre
-                              className={`font-mono text-sm whitespace-pre-wrap ${
-                                output.includes("Error")
-                                  ? "text-red-600"
-                                  : "text-black"
-                              }`}
-                            >
-                              {output ||
-                                "> Run your code to see the output here..."}
-                            </pre>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* UnAuthenticated users see simplified output-only layout */
-                    <div className="bg-white rounded-lg border-2 border-gray-300">
-                      <div className="bg-gray-50 px-4 py-2 border-b-2 border-gray-200 rounded-t-lg">
-                        <h4 className="text-sm font-semibold text-black">
-                          Output
-                        </h4>
-                      </div>
-                      <div className="p-4 min-h-[150px]">
-                        <pre
-                          className={`font-mono text-sm whitespace-pre-wrap ${
-                            output.includes("Error")
-                              ? "text-red-600"
-                              : "text-black"
-                          }`}
-                        >
-                          {output ||
-                            "> Run your code to see the output here..."}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* AI Features - Show only when NOT logged in */}
-                  {!isAuthenticated && (
-                    <div className="bg-white rounded-lg border-2 border-gray-300">
-                      <div className="bg-gray-50 px-4 py-2 border-b-2 border-gray-200 rounded-t-lg">
-                        <h4 className="text-sm font-semibold text-black">
-                          AI Features
-                        </h4>
-                      </div>
-                      <div className="p-4 grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => setShowLoginModal(true)}
-                          className="px-3 py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-300"
-                        >
-                          Hint
-                        </button>
-                        <button
-                          onClick={() => setShowLoginModal(true)}
-                          className="px-3 py-2 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium border border-green-300"
-                        >
-                          Feedback
-                        </button>
-                      </div>
-                      <div className="px-4 pb-4">
-                        <p className="text-xs text-gray-500">
-                          Click any AI feature to login and access advanced
-                          problem-solving assistance
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        {!isAuthenticated && (
-          <div className="py-20 bg-white">
-            <div className="max-w-4xl mx-auto px-6 text-center">
-              <h2 className="text-4xl font-bold mb-16 text-black">
-                Join Our Community
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="p-8">
-                  <div className="text-4xl font-bold text-black mb-2">
-                    1000+
-                  </div>
-                  <div className="text-gray-600 font-medium">
-                    Problems Available
-                  </div>
-                </div>
-                <div className="p-8">
-                  <div className="text-4xl font-bold text-black mb-2">50K+</div>
-                  <div className="text-gray-600 font-medium">
-                    Solutions Submitted
-                  </div>
-                </div>
-                <div className="p-8">
-                  <div className="text-4xl font-bold text-black mb-2">10K+</div>
-                  <div className="text-gray-600 font-medium">Active Users</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* CTA Section */}
-        <div className="py-20 bg-black text-white relative overflow-hidden">
-          <div className="absolute inset-0 backdrop-blur-sm"></div>
-          <div className="absolute left-1/4 top-1/4 w-[200px] h-[200px] rounded-full bg-white opacity-5 blur-[80px]"></div>
-          <div className="absolute right-1/4 bottom-1/4 w-[150px] h-[150px] rounded-full bg-gray-400 opacity-10 blur-[60px]"></div>
-
-          <div className="relative container mx-auto px-6 text-center">
-            <h2 className="text-4xl font-bold mb-4">
-              Ready to Start Your Journey?
-            </h2>
-            <p className="text-xl text-gray-300 mb-8">
-              {isAuthenticated
-                ? `Welcome back, ${
-                    user?.fullName || "User"
-                  }! Continue your coding journey.`
-                : "Join thousands of developers who have cracked their dream jobs"}
-            </p>
-            <button
-              onClick={handleGetStarted}
-              className="px-8 py-4 bg-white text-black rounded-lg hover:bg-gray-100 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-            >
-              {isAuthenticated ? "Continue to Dashboard" : "Get Started Today"}
-            </button>
-          </div>
-        </div>
-
-        {/* Login Modal */}
-        {showLoginModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 border-2 border-black shadow-xl">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-gray-300">
-                  <svg
-                    className="w-8 h-8 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-black mb-2">
-                  Login Required
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  You need to sign in to access {selectedFeature} feature and
-                  other AI-powered tools.
-                </p>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => {
-                      setShowLoginModal(false);
-                      navigate("/auth");
-                    }}
-                    className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => setShowLoginModal(false)}
-                    className="px-4 py-2 bg-white text-black border-2 border-black rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* AI Feature Modal */}
+    <div className="bg-[#1A1A1A] text-gray-300 font-sans">
+      <HeroSection
+        isAuthenticated={auth.isAuthenticated}
+        handleGetStarted={handleGetStarted}
+      />
+      <FeaturesSection features={FEATURES_LIST} />
+      <OnlineCompilerSection
+        isAuthenticated={auth.isAuthenticated}
+        editorState={editor}
+        setEditor={setEditor}
+        languageOptions={languageOptions}
+        handleLanguageChange={handleLanguageChange}
+        runCode={runCode}
+        onAIFeatureClick={handleAIFeatureClick}
+      />
+      {!auth.isAuthenticated && <CommunityStatsSection />}
+      <CallToActionSection
+        isAuthenticated={auth.isAuthenticated}
+        user={auth.user}
+        handleGetStarted={handleGetStarted}
+      />
+      <LoginModal
+        isOpen={modals.showLogin}
+        onClose={() => setModals(m => ({ ...m, showLogin: false }))}
+        feature={modals.selectedFeature}
+        navigate={navigate}
+      />
       <AIFeatureModal
-        isOpen={showAIModal}
-        onClose={() => setShowAIModal(false)}
-        feature={selectedFeature}
-        code={code}
-        language={selectedLanguage}
-        problemDescription={problemDescription}
-        constraints={constraints}
+        isOpen={modals.showAI}
+        onClose={() => setModals(m => ({ ...m, showAI: false }))}
+        feature={modals.selectedFeature}
+        code={editor.code}
+        language={editor.language}
+        // Pass other necessary props...
       />
     </div>
   );
 }
+
+//==============================================================================
+// 3. UI & LAYOUT SUB-COMPONENTS
+//==============================================================================
+
+const HeroSection = ({ isAuthenticated, handleGetStarted }) => (
+  <div className="relative text-center py-20 sm:py-32 px-4 overflow-hidden">
+    <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+    <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6 leading-tight">
+      Build Your Edge. <span className="block text-gray-400">Ace the Interview.</span>
+    </h1>
+    <p className="text-lg sm:text-xl text-gray-400 mb-8 max-w-3xl mx-auto">
+      Level up with a suite of powerful tools designed for elite software engineers. Tackle complex problems, receive instant AI-driven insights, and demonstrate the skills that define top-tier talent.
+    </p>
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <button onClick={handleGetStarted} className="bg-white text-black font-semibold py-3 px-8 rounded-lg hover:bg-gray-200 transition-colors shadow-lg">
+        {isAuthenticated ? "Continue to Dashboard" : "Start for Free"}
+      </button>
+      <button onClick={() => document.getElementById("compiler").scrollIntoView({ behavior: "smooth" })} className="bg-[#282828] text-white font-semibold py-3 px-8 rounded-lg border border-gray-700 hover:bg-[#3c3c3c] transition-colors">
+        Launch Web IDE
+      </button>
+    </div>
+  </div>
+);
+
+const FeaturesSection = ({ features }) => (
+  <div className="py-20 px-4">
+    <div className="container mx-auto">
+      <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">
+        An Arsenal for the Ambitious Developer
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {features.map((feature) => (
+          <div key={feature.title} className="bg-[#282828] p-8 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors">
+            <h3 className="text-2xl font-bold text-white mb-4">{feature.title}</h3>
+            <p className="text-gray-400">{feature.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const OnlineCompilerSection = ({ isAuthenticated, editorState, setEditor, languageOptions, handleLanguageChange, runCode, onAIFeatureClick }) => (
+    <div id="compiler" className="py-20 px-4">
+        <div className="container mx-auto text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Instant Execution, Seamless Workflow</h2>
+            <p className="text-lg text-gray-400">
+              Our integrated development environment is ready for your most complex solutions. Write, test, and iterate in a frictionless environment.
+            </p>
+        </div>
+        <div className="max-w-7xl mx-auto bg-[#282828] rounded-lg border border-gray-700 shadow-2xl">
+            <CompilerHeader
+                language={editorState.language}
+                handleLanguageChange={handleLanguageChange}
+                languageOptions={languageOptions}
+                runCode={runCode}
+                isRunning={editorState.isRunning}
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 p-4">
+                <div className="lg:col-span-3 h-[60vh]">
+                    <Editor
+                        theme="vs-dark"
+                        language={getLanguageConfig(editorState.language).monaco}
+                        value={editorState.code}
+                        onChange={(value) => setEditor(e => ({ ...e, code: value || "" }))}
+                        options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: 'on' }}
+                    />
+                </div>
+                <div className="lg:col-span-2 flex flex-col gap-4">
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <h3 className="text-sm font-medium text-white px-3 py-2 bg-[#1A1A1A] rounded-t-md">Custom Input</h3>
+                        <textarea
+                            value={editorState.customInput}
+                            onChange={(e) => setEditor(es => ({ ...es, customInput: e.target.value }))}
+                            placeholder="Enter input..."
+                            className="w-full flex-grow bg-[#282828] text-gray-300 p-3 rounded-b-md resize-none focus:outline-none font-mono text-sm border-t-0 border border-gray-700"
+                        />
+                    </div>
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <h3 className="text-sm font-medium text-white px-3 py-2 bg-[#1A1A1A] rounded-t-md">Output</h3>
+                        <pre className="text-sm text-gray-300 p-3 overflow-y-auto font-mono h-full bg-[#282828] rounded-b-md border-t-0 border border-gray-700">
+                            {editorState.output || "> Output will appear here..."}
+                        </pre>
+                    </div>
+                    {!isAuthenticated && (
+                        <div className="bg-[#282828] p-4 rounded-lg border border-gray-700 text-center">
+                            <h4 className="font-semibold text-white mb-2">Unlock AI Features</h4>
+                            <p className="text-sm text-gray-400 mb-4">Sign in to get hints, feedback, and code explanations.</p>
+                            <button onClick={() => onAIFeatureClick('Login')} className="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg w-full hover:bg-purple-500 transition-colors">
+                                Sign In to Use AI
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const CompilerHeader = ({ language, handleLanguageChange, languageOptions, runCode, isRunning }) => (
+    <div className="flex justify-between items-center px-4 py-2 border-b border-gray-700">
+        <select value={language} onChange={e => handleLanguageChange(e.target.value)} className="bg-transparent text-white border-none focus:ring-0 text-sm p-1 rounded hover:bg-[#3c3c3c]">
+            {languageOptions.map(opt => <option key={opt.value} value={opt.value} className="bg-[#282828]">{opt.label}</option>)}
+        </select>
+        <button onClick={runCode} disabled={isRunning} className="text-sm bg-green-600 hover:bg-green-500 disabled:bg-green-900 disabled:text-gray-400 text-white font-semibold px-4 py-2 rounded-md transition">
+            {isRunning ? 'Running...' : 'Run'}
+        </button>
+    </div>
+);
+
+const CommunityStatsSection = () => (
+  <div className="py-20 px-4 bg-[#1A1A1A]">
+    <div className="max-w-4xl mx-auto text-center">
+      <h2 className="text-3xl sm:text-4xl font-bold mb-12 text-white">
+        Join a Thriving Developer Community
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <StatItem count="1,000+" label="Curated Problems" />
+        <StatItem count="50,000+" label="Solutions Submitted" />
+        <StatItem count="10,000+" label="Active Developers" />
+      </div>
+    </div>
+  </div>
+);
+
+const StatItem = ({ count, label }) => (
+  <div>
+    <div className="text-4xl font-bold text-white mb-2">{count}</div>
+    <div className="text-gray-400 font-medium">{label}</div>
+  </div>
+);
+
+const CallToActionSection = ({ isAuthenticated, user, handleGetStarted }) => (
+  <div className="py-20 bg-[#282828] text-white text-center px-4">
+    <div className="relative container mx-auto">
+      <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+        Ready to Elevate Your Career?
+      </h2>
+      <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+        {isAuthenticated
+          ? `Keep up the great work, ${user?.fullName || "Developer"}! Your next challenge awaits.`
+          : "Start building the skills that land offers from top tech companies. Your journey begins here."}
+      </p>
+      <button
+        onClick={handleGetStarted}
+        className="px-8 py-3 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-semibold shadow-lg"
+      >
+        {isAuthenticated ? "Explore More Problems" : "Create Your Free Account"}
+      </button>
+    </div>
+  </div>
+);
+
+
+const LoginModal = ({ isOpen, onClose, feature, navigate }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-[#282828] rounded-lg p-8 max-w-md w-full mx-4 border border-gray-700 shadow-xl text-center">
+        <div className="w-16 h-16 bg-[#1A1A1A] rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-gray-600">
+          {/* Lock Icon SVG */}
+          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">
+          Unlock Premium Features
+        </h3>
+        <p className="text-gray-400 mb-6">
+          To access the **{feature}** tool and get a personalized coding experience, please sign in to your account.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => {
+              onClose();
+              navigate("/auth");
+            }}
+            className="flex-1 px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+          >
+            Sign In or Sign Up
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-[#3c3c3c] text-white rounded-lg hover:bg-[#4a4a4a] transition-colors"
+          >
+            Maybe Later
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

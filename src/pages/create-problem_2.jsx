@@ -73,10 +73,59 @@ export default function CreateProblem() {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        // ... (Your existing handleSubmit logic remains exactly the same)
-    };
+   const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.title.trim() || !formData.descriptionMarkdown.trim()) {
+      window.showToast &&
+        window.showToast("Please fill in all required fields.", "warning");
+      return;
+    }
+
+    if (
+      formData.testCases.some((tc) => !tc.input.trim() || !tc.output.trim())
+    ) {
+      window.showToast &&
+        window.showToast("Please fill in all test cases.", "warning");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log(formData);
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/problems`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+
+      if (response.ok) {
+        const data = await response.json();
+        window.showToast &&
+          window.showToast("Problem created successfully!", "success");
+        navigate("/my-problems");
+      } else {
+        const errorData = await response.json();
+        window.showToast &&
+          window.showToast(
+            errorData.message || "Failed to create problem",
+            "error"
+          );
+      }
+    } catch (error) {
+      console.error("Error creating problem:", error);
+      window.showToast && window.showToast("Failed to create problem", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
     
     // Render Access Denied or Loading state if necessary
     if (user && user.role !== "Problem_Setter" && user.role !== "Admin") {
@@ -85,22 +134,14 @@ export default function CreateProblem() {
 
     return (
         <div className="min-h-screen bg-[#1A1A1A] text-gray-300 font-sans pt-24 pb-12">
-            <div className="container mx-auto px-4 max-w-7xl">
+            <div className="container mx-auto px-4 max-w-4xl">
                 <PageHeader navigate={navigate} />
-                <form onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Left Column for Main Details */}
-                        <div className="space-y-8">
-                            <BasicInfoSection formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onTagsChange={handleTagsChange} />
-                            <DescriptionSection value={formData.descriptionMarkdown} onInputChange={handleInputChange} />
-                        </div>
-                        {/* Right Column for Test Cases */}
-                        <div className="space-y-8">
-                            <TestCasesSection testCases={formData.testCases} onTestcaseChange={handleTestcaseChange} onAddTestcase={addTestcase} onRemoveTestcase={removeTestcase} />
-                        </div>
-                    </div>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    <BasicInfoSection formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onTagsChange={handleTagsChange} />
+                    <DescriptionSection value={formData.descriptionMarkdown} onInputChange={handleInputChange} />
+                    <TestCasesSection testCases={formData.testCases} onTestcaseChange={handleTestcaseChange} onAddTestcase={addTestcase} onRemoveTestcase={removeTestcase} />
                     
-                    <div className="flex justify-end gap-4 pt-8 mt-8 border-t border-gray-700">
+                    <div className="flex justify-end gap-4 pt-4">
                         <Button type="button" variant="outline" onClick={() => navigate("/my-problems")} disabled={loading}>
                             Cancel
                         </Button>
@@ -119,9 +160,14 @@ export default function CreateProblem() {
 //==============================================================================
 
 const PageHeader = ({ navigate }) => (
-    <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white">Design a New Challenge</h1>
-        <p className="text-gray-400 mt-2 text-lg">Craft the next problem to test the community's skills.</p>
+    <div className="flex justify-between items-center mb-8">
+        <div>
+            <h1 className="text-3xl font-bold text-white">Design a New Challenge</h1>
+            <p className="text-gray-400 mt-1">Craft the next problem to test the community's skills.</p>
+        </div>
+        <Button variant="outline" onClick={() => navigate("/my-problems")}>
+            Back to My Problems
+        </Button>
     </div>
 );
 
@@ -179,7 +225,7 @@ const DescriptionSection = ({ value, onInputChange }) => (
                 name="descriptionMarkdown"
                 value={value}
                 onChange={onInputChange}
-                rows={15}
+                rows={12}
                 placeholder="## Problem Statement..."
                 className="font-mono text-sm"
                 required
@@ -219,7 +265,7 @@ const TestCaseInput = ({ index, testcase, onTestcaseChange, onRemoveTestcase, is
         <div className="flex justify-between items-center mb-4">
             <h4 className="text-sm font-medium text-white">
                 Test Case {index + 1}
-                {index === 0 && <span className="text-green-400 ml-2 text-xs font-semibold">(Sample)</span>}
+                {index === 0 && <span className="text-green-400 ml-2 text-xs">(Sample - Visible to users)</span>}
             </h4>
             {isRemovable && (
                 <Button type="button" variant="destructive" size="sm" onClick={() => onRemoveTestcase(index)}>
@@ -245,7 +291,7 @@ const TestCaseInput = ({ index, testcase, onTestcaseChange, onRemoveTestcase, is
                     onCheckedChange={(checked) => onTestcaseChange(index, "isSample", checked)}
                 />
                 <Label htmlFor={`isSample-${index}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Visible to users as a sample case
+                    Make this a visible sample case
                 </Label>
             </div>
         )}

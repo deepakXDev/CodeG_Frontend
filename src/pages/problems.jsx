@@ -1,294 +1,251 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Problems = () => {
-    const navigate = useNavigate();
-    const [problems, setProblems] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchLoading, setSearchLoading] = useState(false);
-    const [pagination, setPagination] = useState({});
-    const [currentPage, setCurrentPage] = useState(1);
-    const [filters, setFilters] = useState({
-        difficulty: '',
-        tags: '',
-        search: ''
-    });
-    const [searchInput, setSearchInput] = useState('');
+//==============================================================================
+// 1. CONSTANTS & HELPERS (Moved outside the component for performance)
+//==============================================================================
 
-    // Debounce search to avoid triggering API calls on every keystroke
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            setFilters(prev => ({ ...prev, search: searchInput }));
-            setCurrentPage(1);
-        }, 500);
-        return () => clearTimeout(timeoutId);
-    }, [searchInput]);
-
-    useEffect(() => {
-        fetchProblems();
-    }, [currentPage, filters]);
-
-    const fetchProblems = async () => {
-        // Only show full page loading on initial load
-        if (currentPage === 1 && !filters.search && !filters.difficulty && !filters.tags) {
-            setLoading(true);
-        } else {
-            setSearchLoading(true);
-        }
-        
-        try {
-            const queryParams = new URLSearchParams({
-                page: currentPage,
-                limit: 10,
-                ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value))
-            });
-
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/problems?${queryParams}`, {
-                method: 'GET',
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                const data=result.data;
-                setProblems(data.docs);
-                setPagination({
-                    totalPages: data.totalPages,
-                    totalDocs: data.totalDocs,
-                    currentPage: data.page,
-                    limit: data.limit,
-                    hasNext: data.hasNextPage,
-                    hasPrev: data.hasPrevPage,
-                    totalProblems: data.totalDocs
-                });
-                console.log(data);
-                
-            } else {
-                console.error('Failed to fetch problems');
-            }
-        } catch (error) {
-            console.error('Error fetching problems:', error);
-        } finally {
-            setLoading(false);
-            setSearchLoading(false);
-        }
-    };
-
-    const handleFilterChange = (name, value) => {
-        setFilters(prev => ({ ...prev, [name]: value }));
-        setCurrentPage(1); // Reset to first page when filters change
-    };
-
-    const getDifficultyColor = (difficulty) => {
-        switch (difficulty) {
-            case 'Easy': return 'text-green-700 bg-green-100 border border-green-300';
-            case 'Medium': return 'text-yellow-700 bg-yellow-100 border border-yellow-300';
-            case 'Hard': return 'text-red-700 bg-red-100 border border-red-300';
-            case 'Extreme': return 'text-purple-700 bg-purple-100 border border-purple-300';
-            default: return 'text-gray-700 bg-gray-100 border border-gray-300';
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="bg-white text-black min-h-screen flex items-center justify-center py-20">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-                    <p className="text-black font-medium">Loading problems...</p>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="bg-white text-black min-h-screen p-6">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2 text-black">Problems</h1>
-                    <p className="text-gray-600">Challenge yourself with coding problems</p>
-                </div>
-
-                {/* Filters */}
-                <div className="bg-white rounded-lg p-6 mb-6 border-2 border-black">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label htmlFor="search" className="block text-sm font-medium mb-2 text-black">
-                                Search
-                            </label>
-                            <input
-                                type="text"
-                                id="search"
-                                value={searchInput}
-                                onChange={(e) => setSearchInput(e.target.value)}
-                                placeholder="Search problems..."
-                                className="w-full px-3 py-2 bg-white border-2 border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-600 text-black placeholder-gray-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="difficulty" className="block text-sm font-medium mb-2 text-black">
-                                Difficulty
-                            </label>
-                            <select
-                                id="difficulty"
-                                value={filters.difficulty}
-                                onChange={(e) => handleFilterChange('difficulty', e.target.value)}
-                                className="w-full px-3 py-2 bg-white border-2 border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-600 text-black"
-                            >
-                                <option value="">All Difficulties</option>
-                                <option value="Easy">Easy</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Hard">Hard</option>
-                                <option value="Extreme">Extreme</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label htmlFor="tags" className="block text-sm font-medium mb-2 text-black">
-                                Tags
-                            </label>
-                            <input
-                                type="text"
-                                id="tags"
-                                value={filters.tags}
-                                onChange={(e) => handleFilterChange('tags', e.target.value)}
-                                placeholder="e.g., arrays,graphs"
-                                className="w-full px-3 py-2 bg-white border-2 border-black rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-600 text-black placeholder-gray-500"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Problems List */}
-                {searchLoading ? (
-                    <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-                        <p className="text-black font-medium">Searching problems...</p>
-                    </div>
-                ) : problems.length === 0 ? (
-                    <div className="text-center py-12">
-                        <h3 className="text-xl font-medium mb-4 text-black">No problems found</h3>
-                        <p className="text-gray-600">Try adjusting your search filters</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {problems.map((problem) => (
-                            <div 
-                                key={problem._id} 
-                                className="bg-white rounded-lg p-6 border-2 border-black hover:border-gray-600 transition-colors cursor-pointer hover:shadow-lg"
-                                onClick={() => navigate(`/problem/${problem._id}`)}
-                            >
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex-1">
-                                        <h3 className="text-xl font-semibold mb-2 text-black hover:text-gray-700 transition-colors">
-                                            {problem.title}
-                                        </h3>
-                                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(problem.difficulty)}`}>
-                                                {problem.difficulty}
-                                            </span>
-                                            <span>Time: {problem.timeLimit}ms</span>
-                                            <span>Memory: {problem.memoryLimit}MB</span>
-                                            <span>By: {problem.author?.fullName || problem.createdBy?.name}</span>
-                                            <span>Created: {new Date(problem.createdAt).toLocaleDateString()}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Tags */}
-                                {problem.tags && problem.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mb-3">
-                                        {problem.tags.map((tag, index) => (
-                                            <span
-                                                key={index}
-                                                className="px-2 py-1 bg-black text-white rounded-full text-xs border"
-                                            >
-                                                #{tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Description Preview */}
-                                {/* <div className="text-gray-700">
-                                    <p className="line-clamp-2">
-                                        {problem.description.length > 150 
-                                            ? problem.description.replace(/[#*`]/g, '').substring(0, 150) + '...'
-                                            : problem.description.replace(/[#*`]/g, '')
-                                        }
-                                    </p>
-                                </div> */}
-
-                                <div className="mt-4 pt-4 border-t border-gray-300">
-                                    <button className="text-black hover:text-gray-600 font-medium transition-colors border-b border-black hover:border-gray-600">
-                                        Solve Problem →
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Pagination */}
-                {pagination.totalPages > 1 && (
-                    <div className="flex justify-center items-center mt-8 space-x-2">
-                        <button
-                            onClick={() => setCurrentPage(pagination.currentPage - 1)}
-                            disabled={!pagination.hasPrev}
-                            className="px-4 py-2 bg-white border-2 border-black hover:bg-gray-100 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors text-black font-medium"
-                        >
-                            Previous
-                        </button>
-                        
-                        <div className="flex space-x-1">
-                            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                                let page;
-                                if (pagination.totalPages <= 5) {
-                                    page = i + 1;
-                                } else if (pagination.currentPage <= 3) {
-                                    page = i + 1;
-                                } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                                    page = pagination.totalPages - 4 + i;
-                                } else {
-                                    page = pagination.currentPage - 2 + i;
-                                }
-                                
-                                return (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`px-3 py-2 rounded border-2 transition-colors font-medium ${
-                                            page === pagination.currentPage
-                                                ? 'bg-black text-white border-black'
-                                                : 'bg-white text-black border-black hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        {page}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <button
-                            onClick={() => setCurrentPage(pagination.currentPage + 1)}
-                            disabled={!pagination.hasNext}
-                            className="px-4 py-2 bg-white border-2 border-black hover:bg-gray-100 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors text-black font-medium"
-                        >
-                            Next
-                        </button>
-                    </div>
-                )}
-
-                {/* Stats */}
-                {pagination.totalProblems > 0 && (
-                    <div className="text-center text-gray-600 text-sm mt-6">
-                        Showing {((pagination.currentPage - 1) * 10) + 1} to {Math.min(pagination.currentPage * 10, pagination.totalProblems)} of {pagination.totalProblems} problems
-                    </div>
-                )}
-            </div>
-        </div>
-    );
+const DIFFICULTY_CLASSES = {
+  Easy: "text-green-400 bg-green-900/50 border border-green-700",
+  Medium: "text-yellow-400 bg-yellow-900/50 border border-yellow-700",
+  Hard: "text-red-400 bg-red-900/50 border border-red-700",
+  Extreme: "text-purple-400 bg-purple-900/50 border border-purple-700",
+  default: "text-gray-400 bg-gray-700/50 border border-gray-600",
 };
 
-export default Problems;
+const getDifficultyClass = (difficulty) => DIFFICULTY_CLASSES[difficulty] || DIFFICULTY_CLASSES.default;
+
+//==============================================================================
+// 2. MAIN PAGE COMPONENT
+//==============================================================================
+
+export default function Problems() {
+  const navigate = useNavigate();
+
+  // Grouped state for better management
+  const [pageState, setPageState] = useState({
+    problems: [],
+    pagination: {},
+    loading: true, // For initial full-page load
+    searchLoading: false, // For subsequent filter/page changes
+    error: null,
+  });
+  const [filters, setFilters] = useState({ difficulty: '', tags: '', search: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+
+  // Debounce search input to avoid excessive API calls
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: searchInput }));
+      setCurrentPage(1); // Reset to page 1 on new search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
+  const fetchProblems = useCallback(async () => {
+    const isInitialLoad = currentPage === 1 && !filters.search && !filters.difficulty && !filters.tags;
+    setPageState(p => ({ ...p, loading: isInitialLoad, searchLoading: !isInitialLoad, error: null }));
+
+    try {
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        limit: 10,
+        ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value))
+      });
+      
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/problems?${queryParams}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch problems');
+
+      const result = await response.json();
+      setPageState(p => ({
+        ...p,
+        problems: result.data.docs,
+        pagination: {
+          totalPages: result.data.totalPages,
+          currentPage: result.data.page,
+          hasNext: result.data.hasNextPage,
+          hasPrev: result.data.hasPrevPage,
+          totalProblems: result.data.totalDocs,
+        },
+      }));
+    } catch (error) {
+      setPageState(p => ({ ...p, error: error.message }));
+    } finally {
+      setPageState(p => ({ ...p, loading: false, searchLoading: false }));
+    }
+  }, [currentPage, filters]);
+
+  useEffect(() => {
+    fetchProblems();
+  }, [fetchProblems]);
+
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
+  };
+  
+  if (pageState.loading) {
+    return <LoadingScreen message="Loading Problem Set..." />;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#1A1A1A] text-gray-300 font-sans pt-24 pb-12">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <PageHeader />
+        <FilterBar
+          searchInput={searchInput}
+          setSearchInput={setSearchInput}
+          filters={filters}
+          handleFilterChange={handleFilterChange}
+        />
+        <ProblemList 
+          problems={pageState.problems}
+          isLoading={pageState.searchLoading}
+          navigate={navigate}
+        />
+        <Pagination 
+          pagination={pageState.pagination}
+          setCurrentPage={setCurrentPage}
+        />
+      </div>
+    </div>
+  );
+}
+
+//==============================================================================
+// 3. UI & LAYOUT SUB-COMPONENTS
+//==============================================================================
+
+const PageHeader = () => (
+  <div className="mb-8">
+    <h1 className="text-3xl font-bold text-white">Problem Set</h1>
+    <p className="text-gray-400 mt-1">Sharpen your skills with our curated collection of algorithmic challenges.</p>
+  </div>
+);
+
+const FilterBar = ({ searchInput, setSearchInput, filters, handleFilterChange }) => (
+  <div className="bg-[#282828] rounded-xl p-4 mb-6 border border-gray-700">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <input
+        type="text"
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        placeholder="Search by title or content..."
+        className="w-full bg-[#1A1A1A] border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+      />
+      <select
+        value={filters.difficulty}
+        onChange={(e) => handleFilterChange('difficulty', e.target.value)}
+        className="w-full bg-[#1A1A1A] border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+      >
+        <option value="">All Difficulties</option>
+        <option value="Easy">Easy</option>
+        <option value="Medium">Medium</option>
+        <option value="Hard">Hard</option>
+        <option value="Extreme">Extreme</option>
+      </select>
+      <input
+        type="text"
+        value={filters.tags}
+        onChange={(e) => handleFilterChange('tags', e.target.value)}
+        placeholder="Filter by tags (e.g., array,dp)"
+        className="w-full bg-[#1A1A1A] border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+      />
+    </div>
+  </div>
+);
+
+const ProblemList = ({ problems, isLoading, navigate }) => {
+  if (isLoading) {
+    return <div className="text-center py-12 text-gray-400">Searching...</div>;
+  }
+  if (problems.length === 0) {
+    return (
+      <div className="text-center py-12 bg-[#282828] rounded-xl border border-gray-700">
+        <h3 className="text-xl font-medium text-white">No Problems Found</h3>
+        <p className="text-gray-400 mt-2">Try adjusting your search filters or check back later.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {problems.map(problem => <ProblemItem key={problem._id} problem={problem} navigate={navigate} />)}
+    </div>
+  );
+};
+
+const ProblemItem = ({ problem, navigate }) => (
+  <div
+    className="bg-[#282828] rounded-lg p-4 border border-gray-700 hover:border-purple-500/50 transition-all duration-300 cursor-pointer"
+    onClick={() => navigate(`/problem/${problem._id}`)}
+  >
+    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+      <div className="flex-1">
+        <h3 className="text-lg font-semibold text-white hover:text-purple-300 transition-colors">{problem.title}</h3>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-gray-400">
+          <span className={`px-2 py-0.5 rounded-full font-semibold ${getDifficultyClass(problem.difficulty)}`}>
+            {problem.difficulty}
+          </span>
+          {problem.tags?.map(tag => (
+            <span key={tag} className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">#{tag}</span>
+          ))}
+        </div>
+      </div>
+      <div className="flex-shrink-0">
+        <button className="text-purple-400 font-semibold hover:text-purple-300 transition-colors text-sm">
+          View Challenge &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+
+const Pagination = ({ pagination, setCurrentPage }) => {
+  if (!pagination.totalPages || pagination.totalPages <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="flex justify-center items-center mt-8 space-x-2">
+      <button
+        onClick={() => setCurrentPage(pagination.currentPage - 1)}
+        disabled={!pagination.hasPrev}
+        className="px-4 py-2 bg-[#282828] hover:bg-[#3c3c3c] disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-white border border-gray-700"
+      >
+        Previous
+      </button>
+      <div className="flex space-x-1">
+        {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
+          <button
+            key={page}
+            onClick={() => setCurrentPage(page)}
+            className={`px-4 py-2 rounded-lg transition-colors border text-sm font-medium ${
+              page === pagination.currentPage
+                ? 'bg-purple-600 text-white border-purple-600'
+                : 'bg-[#282828] text-white border-gray-700 hover:bg-[#3c3c3c]'
+            }`}
+          >
+            {page}
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={() => setCurrentPage(pagination.currentPage + 1)}
+        disabled={!pagination.hasNext}
+        className="px-4 py-2 bg-[#282828] hover:bg-[#3c3c3c] disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-white border border-gray-700"
+      >
+        Next
+      </button>
+    </div>
+  );
+};
+const LoadingScreen = ({ message }) => (
+  <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+      <p className="text-white font-medium">{message}</p>
+    </div>
+  </div>
+);

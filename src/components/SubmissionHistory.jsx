@@ -1,15 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
-const SubmissionHistory = ({ problemId = null }) => {
+// Import required shadcn/ui components
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+
+//==============================================================================
+// 1. CONFIGURATION & HELPERS
+//==============================================================================
+
+const getVerdictColor = (verdict) => {
+    switch (verdict) {
+        case 'Accepted': return 'bg-green-900/50 text-green-300 border border-green-700';
+        case 'Wrong Answer': return 'bg-red-900/50 text-red-300 border border-red-700';
+        case 'Time Limit Exceeded': return 'bg-yellow-900/50 text-yellow-300 border border-yellow-700';
+        case 'Memory Limit Exceeded': return 'bg-orange-900/50 text-orange-300 border border-orange-700';
+        case 'Runtime Error': return 'bg-red-900/50 text-red-300 border border-red-700';
+        case 'Compilation Error': return 'bg-purple-900/50 text-purple-300 border border-purple-700';
+        default: return 'bg-gray-700 text-gray-300 border border-gray-600';
+    }
+};
+
+const getLanguageColor = (language) => {
+    switch (language?.toLowerCase()) {
+        case 'cpp': return 'bg-blue-900/50 text-blue-300 border border-blue-700';
+        case 'c': return 'bg-gray-700 text-gray-300 border border-gray-600';
+        case 'java': return 'bg-orange-900/50 text-orange-300 border border-orange-700';
+        case 'python': return 'bg-green-900/50 text-green-300 border border-green-700';
+        default: return 'bg-gray-700 text-gray-300 border border-gray-600';
+    }
+};
+
+const LANGUAGE_CONFIG = {
+    'cpp': { label: 'C++' },
+    'c': { label: 'C' },
+    'java': { label: 'Java' },
+    'python': { label: 'Python' },
+    'default': { label: 'Code' },
+};
+const getLanguageConfig = (lang) => LANGUAGE_CONFIG[lang?.toLowerCase()] || LANGUAGE_CONFIG.default;
+
+const formatDate = (dateString) => new Date(dateString).toLocaleString();
+
+//==============================================================================
+// 2. MAIN COMPONENT
+//==============================================================================
+
+export default function SubmissionHistory({ problemId = null }) {
     const [submissions, setSubmissions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedSubmission, setSelectedSubmission] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [verdictFilter, setVerdictFilter] = useState('');
+    const [verdictBreakdown, setVerdictBreakdown] = useState([]);
 
     const verdictOptions = [
-        { value: '', label: 'All Verdicts' },
+        { value: 'all', label: 'All Verdicts' },
         { value: 'Accepted', label: 'Accepted' },
         { value: 'Wrong Answer', label: 'Wrong Answer' },
         { value: 'Time Limit Exceeded', label: 'Time Limit Exceeded' },
@@ -18,43 +69,43 @@ const SubmissionHistory = ({ problemId = null }) => {
         { value: 'Compilation Error', label: 'Compilation Error' }
     ];
 
-    useEffect(() => {
-        fetchSubmissions();
-    }, [currentPage, verdictFilter, problemId]);
-
-    const fetchSubmissions = async () => {
+    const fetchSubmissions = useCallback(async () => {
         setLoading(true);
         try {
-            let url = `${import.meta.env.VITE_BACKEND_URL}/submission?page=${currentPage}&limit=10`;
-
+            let url = new URL(`${import.meta.env.VITE_BACKEND_URL}/submission`);
             if (problemId) {
-                url = `${import.meta.env.VITE_BACKEND_URL}/submission/problem/${problemId}?page=${currentPage}&limit=10`;
+                url = new URL(`${import.meta.env.VITE_BACKEND_URL}/submission/problem/${problemId}`);
             }
+            url.searchParams.append('page', currentPage);
+            url.searchParams.append('limit', 10);
             
-            if (verdictFilter) {
-                url += `&verdict=${verdictFilter}`;
+            if (verdictFilter && verdictFilter !== 'all') {
+                url.searchParams.append('verdict', verdictFilter);
             }
 
-            const response = await fetch(url, {
-                credentials: 'include'
-            });
-
+            const response = await fetch(url, { credentials: 'include' });
             const data = await response.json();
             
             if (data.success) {
                 setSubmissions(data.data.submissions.docs);
-                // console.log(url);
-                // console.log(data.data.submissions.docs);
                 setTotalPages(data.data.totalPages);
+                // Assuming the API returns breakdown data with the submissions
+                if (data.data.verdictBreakdown) {
+                    setVerdictBreakdown(data.data.verdictBreakdown);
+                }
             }
         } catch (error) {
             console.error('Error fetching submissions:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage, verdictFilter, problemId]);
 
-    const fetchSubmissionDetails = async (submissionId) => {
+    useEffect(() => {
+        fetchSubmissions();
+    }, [fetchSubmissions]);
+
+     const handleViewDetails = async (submissionId) => {
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submission/${submissionId}`, {
                 credentials: 'include'
@@ -71,401 +122,162 @@ const SubmissionHistory = ({ problemId = null }) => {
         }
     };
 
-    const getVerdictColor = (verdict) => {
-        switch (verdict) {
-            case 'Accepted': return 'text-green-700 bg-green-100 border border-green-300';
-            case 'Wrong Answer': return 'text-red-700 bg-red-100 border border-red-300';
-            case 'Time Limit Exceeded': return 'text-yellow-700 bg-yellow-100 border border-yellow-300';
-            case 'Memory Limit Exceeded': return 'text-orange-700 bg-orange-100 border border-orange-300';
-            case 'Runtime Error': return 'text-red-700 bg-red-100 border border-red-300';
-            case 'Compilation Error': return 'text-purple-700 bg-purple-100 border border-purple-300';
-            default: return 'text-gray-700 bg-gray-100 border border-gray-300';
-        }
-    };
-
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleString();
-    };
-
-    const getLanguageColor = (language) => {
-        switch (language.toLowerCase()) {
-            case 'cpp': return 'bg-blue-100 text-blue-800 border border-blue-300';
-            case 'c': return 'bg-gray-100 text-gray-800 border border-gray-300';
-            case 'java': return 'bg-orange-100 text-orange-800 border border-orange-300';
-            case 'python': return 'bg-green-100 text-green-800 border border-green-300';
-            default: return 'bg-gray-100 text-gray-800 border border-gray-300';
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-6">
-            {/* Header and Filters */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="text-2xl font-bold text-black">
-                    {problemId ? 'Problem Submissions' : 'Submission History'}
-                </h2>
-                
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                        </svg>
-                        <select
-                            value={verdictFilter}
-                            onChange={(e) => {
-                                setVerdictFilter(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                            className="px-3 py-2 border-2 border-black rounded-lg focus:outline-none focus:border-gray-600 bg-white text-black text-sm"
-                        >
+            <VerdictBreakdown verdicts={verdictBreakdown} />
+            <Card className="bg-[#282828] border-gray-700 text-gray-300">
+                <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <CardTitle className="text-white">
+                            {problemId ? 'Problem Submissions' : 'Global Submission History'}
+                        </CardTitle>
+                        <CardDescription>Review and analyze all recent submissions.</CardDescription>
+                    </div>
+                    <Select
+                        onValueChange={(value) => {
+                            setVerdictFilter(value === 'all' ? '' : value);
+                            setCurrentPage(1);
+                        }}
+                        defaultValue="all"
+                    >
+                        <SelectTrigger className="w-full sm:w-[180px] bg-[#1A1A1A] border-gray-600">
+                            <SelectValue placeholder="Filter by verdict..." />
+                        </SelectTrigger>
+                        <SelectContent>
                             {verdictOptions.map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
+                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                             ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Submissions Table */}
-            <div className="bg-white rounded-lg shadow-sm border-2 border-black overflow-hidden">
-                {submissions.length === 0 ? (
-                    <div className="p-8 text-center">
-                        <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                        </svg>
-                        <p className="text-gray-500">
-                            No submissions found. Start solving problems to see your submissions here!
-                        </p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b-2 border-gray-200">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Problem
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Verdict
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Language
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Time
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Memory
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Submitted
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {submissions.map((submission) => (
-                                    <tr key={submission._id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {!problemId && (
-                                                <div>
-                                                    <div className="text-sm font-medium text-black">
-                                                        {submission.problemId?.title || 'Unknown Problem'}
-                                                    </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        {submission.problemId?.difficulty || 'Unknown'}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {problemId && (
-                                                <div className="text-sm text-gray-500">
-                                                    Submission #{submission._id.slice(-6)}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getVerdictColor(submission.verdict)}`}>
-                                                    {submission.verdict}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getLanguageColor(submission.language)}`}>
-                                                {submission.language.toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
-                                            <div className="flex items-center gap-1">
-                                                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                {submission.executionTime}ms
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
-                                            <div className="flex items-center gap-1">
-                                                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                                                </svg>
-                                                {submission.memoryUsed}MB
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {formatDate(submission.createdAt)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <button
-                                                onClick={() => fetchSubmissionDetails(submission._id)}
-                                                className="text-black hover:text-gray-600 font-medium text-sm flex items-center gap-1 px-3 py-1 border-2 border-black rounded-lg hover:bg-gray-100 transition-colors"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                </svg>
-                                                View
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-700">
-                        Page {currentPage} of {totalPages}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            className="p-2 rounded-lg border-2 border-black disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </button>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                            className="p-2 rounded-lg border-2 border-black disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Submission Details View */}
-            {selectedSubmission && (
-                <div className="bg-white rounded-lg border-2 border-black shadow-xl p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-black">
-                            Submission Details
-                        </h3>
-                        <button
-                            onClick={() => setSelectedSubmission(null)}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
-                        >
-                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    {/* Submission Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                            <h4 className="font-medium text-black mb-2">
-                                Problem
-                            </h4>
-                            <p className="text-gray-600">
-                                {selectedSubmission.problem.title}
-                            </p>
-                        </div>
-                        <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                            <h4 className="font-medium text-black mb-2">
-                                Verdict
-                            </h4>
-                            <div className="flex items-center gap-2">
-                                <span className={`font-semibold px-2 py-1 rounded text-sm ${getVerdictColor(selectedSubmission.verdict)}`}>
-                                    {selectedSubmission.verdict}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Code */}
-                    <div className="mb-6">
-                        <h4 className="font-medium text-black mb-3">
-                            Code ({selectedSubmission.language.toUpperCase()})
-                        </h4>
-                        <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm font-mono text-black border-2 border-gray-200">
-                            {selectedSubmission.sourceCode}
-                        </pre>
-                    </div>
-
-                    {/* Error Message */}
-                    {selectedSubmission.errorMessage && (
-                        <div className="mb-6">
-                            <h4 className="font-medium text-black mb-3">
-                                Error Details
-                            </h4>
-                            <pre className="bg-red-50 border-2 border-red-200 p-4 rounded-lg text-sm font-mono text-red-700">
-                                {selectedSubmission.errorMessage}
-                            </pre>
-                        </div>
+                        </SelectContent>
+                    </Select>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <LoadingSkeleton />
+                    ) : submissions.length === 0 ? (
+                        <EmptyState />
+                    ) : (
+                        <SubmissionTable submissions={submissions} onViewDetails={handleViewDetails} />
                     )}
-
-                    {/* Test Case Results */}
-                    {selectedSubmission.testCaseResults && selectedSubmission.testCaseResults.length > 0 && (
-                        <div>
-                            <h4 className="font-medium text-black mb-3">
-                                Test Case Results
-                            </h4>
-                            
-                            {/* Visible Test Cases - Full Details */}
-                            <div className="space-y-3 mb-4">
-                                {selectedSubmission.testCaseResults
-                                    .filter(testCase => testCase.visible)
-                                    .map((testCase, index) => (
-                                    <div 
-                                        key={`visible-${index}`}
-                                        className={`border-2 rounded-lg p-4 ${
-                                            testCase.verdict === 'Accepted'
-                                                ? 'border-green-200 bg-green-50' 
-                                                : 'border-red-200 bg-red-50'
-                                        }`}
-                                    >
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium">
-                                                Test Case {testCase.testCase || (index + 1)}
-                                            </span>
-                                            <span className={`text-sm font-medium ${
-                                                testCase.verdict === 'Accepted'
-                                                    ? 'text-green-600' 
-                                                    : 'text-red-600'
-                                            }`}>
-                                                {testCase.verdict === 'Accepted' ? 'Passed' : `${testCase.verdict}`}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <p className="font-medium text-gray-700 mb-1">
-                                                    Input:
-                                                </p>
-                                                <pre className="bg-white p-2 rounded border-2 border-gray-200 font-mono text-xs">
-                                                    {testCase.input || 'No input'}
-                                                </pre>
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-gray-700 mb-1">
-                                                    Expected Output:
-                                                </p>
-                                                <pre className="bg-white p-2 rounded border-2 border-gray-200 font-mono text-xs">
-                                                    {testCase.expectedOutput}
-                                                </pre>
-                                            </div>
-                                            <div className="md:col-span-2">
-                                                <p className="font-medium text-gray-700 mb-1">
-                                                    Your Output:
-                                                </p>
-                                                <pre className="bg-white p-2 rounded border-2 border-gray-200 font-mono text-xs">
-                                                    {testCase.actualOutput}
-                                                </pre>
-                                            </div>
-                                        </div>
-                                        
-                                        {testCase.executionTime && (
-                                            <div className="mt-2 text-sm text-gray-600">
-                                                <span className="font-medium">Execution Time:</span> {testCase.executionTime}ms
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Hidden Test Cases - Capsule Format */}
-                            {selectedSubmission.testCaseResults.filter(testCase => !testCase.visible).length > 0 && (
-                                <div>
-                                    <h5 className="font-medium text-gray-700 mb-2 text-sm">
-                                        Hidden Test Cases:
-                                    </h5>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedSubmission.testCaseResults
-                                            .filter(testCase => !testCase.visible)
-                                            .map((testCase, index) => {
-                                                const isAccepted = testCase.verdict === 'Accepted';
-                                                const tooltipContent = isAccepted 
-                                                    ? `Test Case ${testCase.testCase}: Passed (${testCase.executionTime || 0}ms)`
-                                                    : `Test Case ${testCase.testCase}: ${testCase.verdict}${testCase.error ? ` - ${testCase.error}` : ''}${testCase.executionTime ? ` (${testCase.executionTime}ms)` : ''}`;
-                                                
-                                                return (
-                                                    <div
-                                                        key={`hidden-${index}`}
-                                                        className={`group relative inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-default transition-all hover:scale-105 ${
-                                                            isAccepted
-                                                                ? 'bg-green-100 text-green-800 border border-green-300 hover:bg-green-200'
-                                                                : 'bg-red-100 text-red-800 border border-red-300 hover:bg-red-200'
-                                                        }`}
-                                                    >
-                                                        <span className={`w-2 h-2 rounded-full mr-2 ${
-                                                            isAccepted ? 'bg-green-500' : 'bg-red-500'
-                                                        }`}></span>
-                                                        TC {testCase.testCase}
-                                                        
-                                                        {/* Hover tooltip */}
-                                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 group-hover:opacity-100 whitespace-nowrap z-10 max-w-xs">
-                                                            {tooltipContent}
-                                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                    </div>
-                                    
-                                    {/* Summary */}
-                                    <div className="mt-3 text-sm text-gray-600">
-                                        <span className="font-medium">
-                                            Hidden Cases: 
-                                        </span>
-                                        <span className="text-green-600 ml-1">
-                                            {selectedSubmission.testCaseResults.filter(tc => !tc.visible && tc.verdict === 'Accepted').length} passed
-                                        </span>
-                                        <span className="mx-1">•</span>
-                                        <span className="text-red-600">
-                                            {selectedSubmission.testCaseResults.filter(tc => !tc.visible && tc.verdict !== 'Accepted').length} failed
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
+                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                </CardContent>
+            </Card>
+            <SubmissionDetailModal
+                submission={selectedSubmission}
+                isOpen={!!selectedSubmission}
+                onClose={() => setSelectedSubmission(null)}
+            />
         </div>
+    );
+}
+
+//==============================================================================
+// 3. UI & LAYOUT SUB-COMPONENTS
+//==============================================================================
+
+const VerdictBreakdown = ({ verdicts }) => {
+    if (!verdicts || verdicts.length === 0) {
+      return null; // Don't render anything if there's no data
+    }
+    return (
+      <Card className="bg-[#282828] border-gray-700 text-gray-300">
+        <CardHeader>
+          <CardTitle className="text-white text-lg">Verdict Analysis</CardTitle>
+          <CardDescription>A summary of your submission outcomes for this problem.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-4">
+          {verdicts.map((v) => (
+            <div key={v._id} className="flex items-center gap-3 p-3 bg-[#1A1A1A] rounded-lg border border-gray-600">
+              <Badge className={`font-semibold text-xs ${getVerdictColor(v._id)}`}>{v._id}</Badge>
+              <span className="font-bold text-lg text-white">{v.count}</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     );
 };
 
-export default SubmissionHistory;
+const SubmissionTable = ({ submissions, onViewDetails }) => (
+    <Table>
+        <TableHeader>
+            <TableRow className="border-gray-700 hover:bg-transparent">
+                {submissions[0] && !submissions[0].problemId?.title && <TableHead className="text-white font-semibold">Problem</TableHead>}
+                <TableHead className="text-white font-semibold">Verdict</TableHead>
+                <TableHead className="text-white font-semibold">Language</TableHead>
+                <TableHead className="text-white font-semibold text-right">Execution</TableHead>
+                <TableHead className="text-white font-semibold text-right">Memory</TableHead>
+                <TableHead className="text-white font-semibold">Timestamp</TableHead>
+                <TableHead className="text-white font-semibold text-right">Actions</TableHead>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            {submissions.map(sub => (
+                <TableRow key={sub._id} className="border-gray-700">
+                    {!sub.problemId?.title && <TableCell className="font-medium text-white">{sub.problemId?.title || 'Unknown'}</TableCell>}
+                    <TableCell>
+                        <Badge className={`font-semibold ${getVerdictColor(sub.verdict)}`}>{sub.verdict}</Badge>
+                    </TableCell>
+                    <TableCell>
+                        <Badge className={`font-semibold ${getLanguageColor(sub.language)}`}>{sub.language.toUpperCase()}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">{sub.executionTime || 'N/A'} ms</TableCell>
+                    <TableCell className="text-right font-mono text-sm">{sub.memoryUsed || 'N/A'} MB</TableCell>
+                    <TableCell className="text-sm text-gray-400">{formatDate(sub.createdAt)}</TableCell>
+                    <TableCell className="text-right">
+                        <Button variant="outline" size="sm" onClick={() => onViewDetails(sub._id)}>View</Button>
+                    </TableCell>
+                </TableRow>
+            ))}
+        </TableBody>
+    </Table>
+);
+
+const SubmissionDetailModal = ({ submission, isOpen, onClose }) => (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[60%] bg-[#282828] border-gray-700 text-gray-300">
+            <DialogHeader>
+                <DialogTitle className="text-white">Submission Details</DialogTitle>
+                <DialogDescription>
+                    Analysis of submission for <span className="font-bold text-white">{submission?.problem?.title || 'a problem'}</span>
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                <h4 className="font-semibold text-white">Source Code ({getLanguageConfig(submission?.language).label})</h4>
+                <pre className="bg-[#1A1A1A] p-4 rounded-md text-sm font-mono border border-gray-700">
+                    <code>{submission?.sourceCode}</code>
+                </pre>
+                {submission?.errorMessage && (
+                    <>
+                        <h4 className="font-semibold text-red-400">Error Details</h4>
+                        <pre className="bg-red-900/20 p-4 rounded-md text-sm font-mono border border-red-700 text-red-300">
+                            <code>{submission.errorMessage}</code>
+                        </pre>
+                    </>
+                )}
+            </div>
+        </DialogContent>
+    </Dialog>
+);
+
+const LoadingSkeleton = () => (
+    <div className="space-y-2">
+        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full bg-gray-700" />)}
+    </div>
+);
+
+const EmptyState = () => (
+    <div className="text-center py-12">
+        <h3 className="text-xl font-medium text-white">No Submissions Found</h3>
+        <p className="text-gray-400 mt-2">Try adjusting your filters or solve a problem to see your history.</p>
+    </div>
+);
+
+const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+    return (
+        <div className="flex items-center justify-end space-x-2 py-4">
+            <Button variant="outline" size="sm" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1}>Previous</Button>
+            <span className="text-sm text-gray-400">Page {currentPage} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage >= totalPages}>Next</Button>
+        </div>
+    );
+};
