@@ -3,8 +3,9 @@ import InputField, { MailIcon, LockIcon, UserIcon } from './Inputfield';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {ToastContainer} from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { handleError, handleSuccess } from '../utils';
-import Hcaptchaa from './hcaptchaa';
+// import Hcaptchaa from './hcaptchaa';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,65 +41,102 @@ export default function Login({ onToggleForm }) {
     handleError("Captcha verification failed. Please try again.");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (isSubmitting) return;
-    
-    const { email, password } = loginInfo;
-    if(!email || !password) {
-      return handleError("Please fill all fields");
-    }
-
-    if (!captchaToken) {
-      return handleError("Please complete the captcha verification");
-    }
-
-    setIsSubmitting(true);
-
-    try{
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          ...loginInfo,
-          captchaToken
-        })
-      });
-      const result = await response.json();
-      console.log('Login response:', result);
-      
-      if (response.ok && result.success) {
-        handleSuccess("Login successful!");
-        login(result.user);
+  
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
         
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1000);
-      } else {
-        const errorMessage = result.message || "Login failed";
-        handleError(errorMessage);
-        // Reset captcha on error
-        setCaptchaToken(null);
-        if (captchaRef.current) {
-          captchaRef.current.resetCaptcha();
+        const { email, password } = loginInfo;
+        if (!email || !password) {
+            return handleError("Please fill in all fields.");
         }
-      }
-    } catch(err) {
-      handleError("Network error. Please check your connection and try again.");
-      console.log(err);
-      // Reset captcha on error
-      setCaptchaToken(null);
-      if (captchaRef.current) {
-        captchaRef.current.resetCaptcha();
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+        if (!captchaToken) {
+            return handleError("Please complete the captcha verification.");
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ ...loginInfo, captchaToken }),
+            });
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                handleSuccess("Login successful!");
+                login(result.user);
+                setTimeout(() => navigate('/dashboard'), 1000);
+            } else {
+                handleError(result.message || "Login failed. Please check your credentials.");
+            }
+        } catch (err) {
+            handleError("A network error occurred. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+    
+  //   if (isSubmitting) return;
+    
+  //   const { email, password } = loginInfo;
+  //   if(!email || !password) {
+  //     return handleError("Please fill all fields");
+  //   }
+
+  //   if (!captchaToken) {
+  //     return handleError("Please complete the captcha verification");
+  //   }
+
+  //   setIsSubmitting(true);
+
+  //   try{
+  //     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/login`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       credentials: 'include',
+  //       body: JSON.stringify({
+  //         ...loginInfo,
+  //         captchaToken
+  //       })
+  //     });
+  //     const result = await response.json();
+  //     console.log('Login response:', result);
+      
+  //     if (response.ok && result.success) {
+  //       handleSuccess("Login successful!");
+  //       login(result.user);
+        
+  //       setTimeout(() => {
+  //         navigate('/dashboard');
+  //       }, 1000);
+  //     } else {
+  //       const errorMessage = result.message || "Login failed";
+  //       handleError(errorMessage);
+  //       // Reset captcha on error
+  //       setCaptchaToken(null);
+  //       if (captchaRef.current) {
+  //         captchaRef.current.resetCaptcha();
+  //       }
+  //     }
+  //   } catch(err) {
+  //     handleError("Network error. Please check your connection and try again.");
+  //     console.log(err);
+  //     // Reset captcha on error
+  //     setCaptchaToken(null);
+  //     if (captchaRef.current) {
+  //       captchaRef.current.resetCaptcha();
+  //     }
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   return (
   <>
@@ -147,6 +185,7 @@ export default function Login({ onToggleForm }) {
         </Button>
       </p>
     </CardContent>
+      <ToastContainer theme="dark" position="bottom-right" /> {/* This container is what displays the toasts */}
   </>
 );
 };

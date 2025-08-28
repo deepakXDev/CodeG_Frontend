@@ -6,6 +6,17 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SubmissionHistory from "../components/SubmissionHistory";
 import AIReview from "../components/AIReview";
+import { X, Sparkles } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 //==============================================================================
 // 1. CONSTANTS & HELPERS (Moved outside the component for performance)
@@ -608,101 +619,161 @@ const NotFoundScreen = () => (
 //         </div>
 //     );
 // };
-const AIReviewModal = ({
-  showAIReview,
-  setShowAIReview,
-  code,
-  selectedLanguage,
-}) => {
-  if (!showAIReview) {
-    return null;
-  }
+// const AIReviewModal = ({
+//   showAIReview,
+//   setShowAIReview,
+//   code,
+//   selectedLanguage,
+// }) => {
+//   if (!showAIReview) {
+//     return null;
+//   }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-white rounded-lg max-w-4xl w-full mx-4 h-[80vh] border-2 border-black shadow-xl flex flex-col">
-        <ModalHeader setShowAIReview={setShowAIReview} />
-        <ModalContent
-          code={code}
-          language={selectedLanguage}
-          onClose={() => setShowAIReview(false)}
-        />
-        <ModalFooter
-          selectedLanguage={selectedLanguage}
-          setShowAIReview={setShowAIReview}
-        />
-      </div>
-    </div>
-  );
-};
+//   return (
+//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+//       <div className="bg-white rounded-lg max-w-4xl w-full mx-4 h-[80vh] border-2 border-black shadow-xl flex flex-col">
+//         <ModalHeader setShowAIReview={setShowAIReview} />
+//         <ModalContent
+//           code={code}
+//           language={selectedLanguage}
+//           onClose={() => setShowAIReview(false)}
+//         />
+//         <ModalFooter
+//           selectedLanguage={selectedLanguage}
+//           setShowAIReview={setShowAIReview}
+//         />
+//       </div>
+//     </div>
+//   );
+// };
 
-const ModalHeader = ({ setShowAIReview }) => (
-  <div className="flex justify-between items-center p-6 border-b-2 border-gray-200 bg-gray-50 rounded-t-lg">
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-        <svg
-          className="w-4 h-4 text-white"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-          />
-        </svg>
-      </div>
-      <div>
-        <h3 className="text-xl font-bold text-black">AI Code Review</h3>
-        <p className="text-gray-600 text-sm">
-          Get intelligent feedback on your code
-        </p>
-      </div>
-    </div>
-    <button
-      onClick={() => setShowAIReview(false)}
-      className="text-gray-600 hover:text-black transition-colors"
-    >
-      <svg
-        className="w-6 h-6"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M6 18L18 6M6 6l12 12"
-        />
-      </svg>
-    </button>
-  </div>
+// const ModalHeader = ({ setShowAIReview }) => (
+//   <div className="flex justify-between items-center p-6 border-b-2 border-gray-200 bg-gray-50 rounded-t-lg">
+//     <div className="flex items-center gap-3">
+//       <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+//         <svg
+//           className="w-4 h-4 text-white"
+//           fill="none"
+//           stroke="currentColor"
+//           viewBox="0 0 24 24"
+//         >
+//           <path
+//             strokeLinecap="round"
+//             strokeLinejoin="round"
+//             strokeWidth={2}
+//             d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+//           />
+//         </svg>
+//       </div>
+//       <div>
+//         <h3 className="text-xl font-bold text-black">AI Code Review</h3>
+//         <p className="text-gray-600 text-sm">
+//           Get intelligent feedback on your code
+//         </p>
+//       </div>
+//     </div>
+//     <button
+//       onClick={() => setShowAIReview(false)}
+//       className="text-gray-600 hover:text-black transition-colors"
+//     >
+//       <svg
+//         className="w-6 h-6"
+//         fill="none"
+//         stroke="currentColor"
+//         viewBox="0 0 24 24"
+//       >
+//         <path
+//           strokeLinecap="round"
+//           strokeLinejoin="round"
+//           strokeWidth={2}
+//           d="M6 18L18 6M6 6l12 12"
+//         />
+//       </svg>
+//     </button>
+//   </div>
+// );
+
+// const ModalContent = ({ code, language, onClose }) => (
+//   <div className="flex-1 bg-white text-black overflow-hidden">
+//     <AIReview code={code} language={language} onClose={onClose} />
+//   </div>
+// );
+
+// const ModalFooter = ({ selectedLanguage, setShowAIReview }) => (
+//   <div className="p-4 border-t-2 border-gray-200 bg-gray-50 rounded-b-lg">
+//     <div className="flex justify-between items-center">
+//       <p className="text-gray-600 text-sm">
+//         Language:{" "}
+//         <span className="font-medium text-black">
+//           {selectedLanguage.toUpperCase()}
+//         </span>
+//       </p>
+//       <button
+//         onClick={() => setShowAIReview(false)}
+//         className="px-4 py-2 bg-white text-black border-2 border-black rounded-lg hover:bg-gray-100 transition-colors font-medium"
+//       >
+//         Close
+//       </button>
+//     </div>
+//   </div>
+// );
+
+
+const ModalHeader = () => (
+    <DialogHeader className="p-6 border-b border-gray-700">
+        <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+                <DialogTitle className="text-xl font-bold text-white">AI Code Review</DialogTitle>
+                <DialogDescription className="text-gray-400 text-sm">
+                    Get intelligent feedback and suggestions on your code.
+                </DialogDescription>
+            </div>
+        </div>
+    </DialogHeader>
 );
 
 const ModalContent = ({ code, language, onClose }) => (
-  <div className="flex-1 bg-white text-black overflow-hidden">
-    <AIReview code={code} language={language} onClose={onClose} />
-  </div>
+    <div className="flex-1 p-6 text-gray-300 overflow-y-auto">
+        {/* Your AIReview component will go here and handle the actual review logic */}
+        {/* <AIReview code={code} language={language} onClose={onClose} /> */}
+        <AIReview code={code} language={language} onClose={onClose} />
+        <p>AI Review for your {language.toUpperCase()} code would be displayed here.</p>
+        <pre className="mt-4 p-4 bg-[#1A1A1A] rounded-lg border border-gray-700 overflow-x-auto">
+            <code>{code}</code>
+        </pre>
+    </div>
 );
 
-const ModalFooter = ({ selectedLanguage, setShowAIReview }) => (
-  <div className="p-4 border-t-2 border-gray-200 bg-gray-50 rounded-b-lg">
-    <div className="flex justify-between items-center">
-      <p className="text-gray-600 text-sm">
-        Language:{" "}
-        <span className="font-medium text-black">
-          {selectedLanguage.toUpperCase()}
-        </span>
-      </p>
-      <button
-        onClick={() => setShowAIReview(false)}
-        className="px-4 py-2 bg-white text-black border-2 border-black rounded-lg hover:bg-gray-100 transition-colors font-medium"
-      >
-        Close
-      </button>
-    </div>
-  </div>
+const ModalFooter = ({ selectedLanguage }) => (
+    <DialogFooter className="p-4 border-t border-gray-700 bg-[#1A1A1A] sm:justify-between">
+        <p className="text-gray-400 text-sm">
+            Language: <span className="font-medium text-white">{selectedLanguage.toUpperCase()}</span>
+        </p>
+        <DialogClose asChild>
+            <Button type="button" variant="outline" className="border-gray-600 hover:bg-gray-800">
+                Close
+            </Button>
+        </DialogClose>
+    </DialogFooter>
 );
+
+
+const AIReviewModal = ({ showAIReview, setShowAIReview, code, selectedLanguage }) => {
+    // We use the 'open' and 'onOpenChange' props of the shadcn/ui Dialog for full control
+    return (
+        <Dialog open={showAIReview} onOpenChange={setShowAIReview}>
+            <DialogContent className="bg-[#282828] border-gray-700 max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0">
+                <ModalHeader />
+                <ModalContent
+                    code={code}
+                    language={selectedLanguage}
+                    onClose={() => setShowAIReview(false)}
+                />
+                <ModalFooter selectedLanguage={selectedLanguage} />
+            </DialogContent>
+        </Dialog>
+    );
+};
