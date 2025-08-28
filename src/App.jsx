@@ -17,6 +17,7 @@ import PrivateRoute from './components/PrivateRoute.jsx';
 import RouteWrapper from './components/RouteWrapper.jsx';
 import { ToastProvider } from './components/Toast.jsx';
 import MainLayout from './components/MainLayout';
+import NotFoundPage from './pages/notFoundPage';
 
 
 
@@ -49,6 +50,14 @@ function AppContent() {
                 <Route path='/edit-problem/:id' element={<PrivateRoute element={<EditProblem />} title="Edit Problem" />} />
                 <Route path='/my-problems' element={<PrivateRoute element={<MyProblems />} title="My Problems" />} />
                 <Route path='/submissions' element={<PrivateRoute element={<SubmissionsPage />} title="Submissions" />} />
+                <Route 
+                    path='*' 
+                    element={
+                        <RouteWrapper title="404 Not Found">
+                            <NotFoundPage />
+                        </RouteWrapper>
+                    } 
+                />
             </Routes>
         </MainLayout>
     );

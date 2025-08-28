@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
         try {
             // It's more conventional to use POST for actions that change server state
             await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/logout`, {
-                method: "POST",
+                method: "GET",
                 credentials: "include",
             });
         } catch (error) {

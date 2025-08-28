@@ -1,59 +1,75 @@
 import React from 'react'
 import { useState } from 'react'
-import HoverCard from '../components/hovercard.jsx'
 import Login from '../components/login.jsx'
-import Register from '../components/register.jsx'
+// import Register from '../components/register.jsx'
+import Register from '@/components/register.jsx'
+
+
+const AuthCard = ({ children }) => (
+    <div className="bg-[#282828]/60 backdrop-blur-xl border border-gray-700/50 rounded-xl shadow-2xl shadow-black/20 overflow-hidden">
+        {children}
+    </div>
+);
+
+
+const AuthBackground = () => (
+    <>
+        <div 
+            className="absolute inset-0 opacity-20" 
+            style={{
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.12\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'
+            }}
+        ></div>
+        <div className="absolute -top-1/4 -left-1/4 w-96 h-96 bg-purple-600/20 rounded-full filter blur-3xl opacity-50 animate-blob"></div>
+        <div className="absolute -bottom-1/4 -right-1/4 w-96 h-96 bg-blue-600/20 rounded-full filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
+    </>
+);
+
+const AuthHeader = ({ isLoginView }) => (
+  <div className="text-center mb-8">
+    <h1 className="text-4xl font-bold mb-2 text-white">
+      Welcome to <span className="border-b-4 border-purple-500">CodeG</span>
+    </h1>
+    <p className="text-gray-400">
+      {isLoginView ? 'Sign in to access your personalized dashboard' : 'Join CodeG and start building your skills today'}
+    </p>
+  </div>
+);
+
+const AuthFooter = () => (
+  <div className="text-center mt-8 text-gray-500">
+    <p className="text-xs">
+      By continuing, you agree to CodeG’s <span className="underline">Terms of Service</span> and <span className="underline">Privacy Policy</span>.
+    </p>
+  </div>
+);
+
+
 
 function Auth() {
-     const [isLoginView, setIsLoginView] = useState(true);
+    const [isLoginView, setIsLoginView] = useState(true);
 
-  const toggleForm = () => {
-    setIsLoginView(!isLoginView);
-  };
+    const toggleForm = () => {
+        setIsLoginView(!isLoginView);
+    };
 
-  return (
-    <div className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
-      {/* Background with blur effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white"></div>
-      <div className="absolute inset-0 backdrop-blur-sm"></div>
-      
-      {/* Decorative elements */}
-      <div className="absolute inset-0 bg-white bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-      <div className="absolute left-1/2 top-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-black opacity-5 blur-[100px]"></div>
-      <div className="absolute right-1/4 bottom-1/4 w-[200px] h-[200px] rounded-full bg-gray-400 opacity-10 blur-[80px]"></div>
-      
-      {/* Main content */}
-      <div className="relative z-10 w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-black">
-            Welcome to <span className="border-b-4 border-black">CodeJudge</span>
-          </h1>
-          <p className="text-gray-600">
-            {isLoginView ? 'Sign in to your account' : 'Create your account'}
-          </p>
+    return (
+        <div className="min-h-screen bg-[#1A1A1A] text-gray-300 flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
+            <AuthBackground />
+            <div className="relative z-10 w-full max-w-md">
+                <AuthHeader isLoginView={isLoginView} />
+                <AuthCard>
+                    {isLoginView ? (
+                        <Login onToggleForm={toggleForm} />
+                    ) : (
+                        <Register onToggleForm={toggleForm} />
+                    )}
+                </AuthCard>
+
+                <AuthFooter />
+            </div>
         </div>
-
-        {/* Auth form with glass effect */}
-        <div className="bg-white/80 backdrop-blur-md border-2 border-black rounded-lg shadow-2xl">
-          <HoverCard className="w-full">
-            {isLoginView ? (
-              <Login onToggleForm={toggleForm} />
-            ) : (
-              <Register onToggleForm={toggleForm} />
-            )}
-          </HoverCard>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-8 text-gray-600">
-          <p className="text-sm">
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+    );
 }
 
-export default Auth
+export default Auth;

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback,useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import AIFeatureModal from "../components/AIFeatureModal";
+import { LayoutBackground } from "@/components/MainLayout";
 // import TweakWrapper from "../utils/TweakWrapper";
 
 //==============================================================================
@@ -54,6 +55,7 @@ const getLanguageConfig = (langValue) => LANGUAGE_CONFIG[langValue] || LANGUAGE_
 
 export default function Home() {
   const navigate = useNavigate();
+   const compilerRef = useRef(null);
 
   // Grouped state for better readability and management
   const [auth, setAuth] = useState({ isAuthenticated: false, user: null });
@@ -86,8 +88,9 @@ export default function Home() {
         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/profile`, { credentials: "include" });
         if (response.ok) {
           const result = await response.json();
-          if (result.success && result.data) {
-            setAuth({ isAuthenticated: true, user: result.data });
+          console.log(result);
+          if (result.success && result.user) {
+            setAuth({ isAuthenticated: true, user: result.user });
           }
         }
       } catch (error) {
@@ -157,6 +160,10 @@ const runCode = useCallback(async () => {
     navigate(auth.isAuthenticated ? "/dashboard" : "/auth");
   }, [auth.isAuthenticated, navigate]);
 
+  const handleScrollToCompiler = useCallback(() => {
+        compilerRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, []);
+
   const handleAIFeatureClick = (feature) => {
     if (auth.isAuthenticated) {
         setModals(m => ({ ...m, selectedFeature: feature, showAI: true }));
@@ -166,13 +173,16 @@ const runCode = useCallback(async () => {
   };
 
   return (
-    <div className="bg-[#1A1A1A] text-gray-300 font-sans">
+    <div className="bg-[#1A1A1A] text-gray-300 font-sans relative overflow-hidden">
+        <LayoutBackground />
       <HeroSection
         isAuthenticated={auth.isAuthenticated}
         handleGetStarted={handleGetStarted}
+        onScrollToCompiler={handleScrollToCompiler}
       />
       <FeaturesSection features={FEATURES_LIST} />
       <OnlineCompilerSection
+        ref={compilerRef} 
         isAuthenticated={auth.isAuthenticated}
         editorState={editor}
         setEditor={setEditor}
@@ -209,9 +219,9 @@ const runCode = useCallback(async () => {
 // 3. UI & LAYOUT SUB-COMPONENTS
 //==============================================================================
 
-const HeroSection = ({ isAuthenticated, handleGetStarted }) => (
+const HeroSection = ({ isAuthenticated, handleGetStarted, onScrollToCompiler }) => (
   <div className="relative text-center py-20 sm:py-32 px-4 overflow-hidden">
-    <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+    <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
     <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6 leading-tight">
       Build Your Edge. <span className="block text-gray-400">Ace the Interview.</span>
     </h1>
@@ -222,7 +232,8 @@ const HeroSection = ({ isAuthenticated, handleGetStarted }) => (
       <button onClick={handleGetStarted} className="bg-white text-black font-semibold py-3 px-8 rounded-lg hover:bg-gray-200 transition-colors shadow-lg">
         {isAuthenticated ? "Continue to Dashboard" : "Start for Free"}
       </button>
-      <button onClick={() => document.getElementById("compiler").scrollIntoView({ behavior: "smooth" })} className="bg-[#282828] text-white font-semibold py-3 px-8 rounded-lg border border-gray-700 hover:bg-[#3c3c3c] transition-colors">
+      {/* <button onClick={() => document.getElementById("compiler").scrollIntoView({ behavior: "smooth" })} className="bg-[#282828] text-white font-semibold py-3 px-8 rounded-lg border border-gray-700 hover:bg-[#3c3c3c] transition-colors"> */}
+      <button onClick={onScrollToCompiler} className="bg-[#282828] text-white font-semibold py-3 px-8 rounded-lg border border-gray-700 hover:bg-[#3c3c3c] transition-colors">
         Launch Web IDE
       </button>
     </div>
@@ -247,8 +258,8 @@ const FeaturesSection = ({ features }) => (
   </div>
 );
 
-const OnlineCompilerSection = ({ isAuthenticated, editorState, setEditor, languageOptions, handleLanguageChange, runCode, onAIFeatureClick }) => (
-    <div id="compiler" className="py-20 px-4">
+const OnlineCompilerSection = React.forwardRef(({ isAuthenticated, editorState, setEditor, languageOptions, handleLanguageChange, runCode, onAIFeatureClick },ref) => (
+    <div id="compiler" ref={ref} className="py-20 px-4">
         <div className="container mx-auto text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Instant Execution, Seamless Workflow</h2>
             <p className="text-lg text-gray-400">
@@ -302,7 +313,7 @@ const OnlineCompilerSection = ({ isAuthenticated, editorState, setEditor, langua
             </div>
         </div>
     </div>
-);
+));
 
 const CompilerHeader = ({ language, handleLanguageChange, languageOptions, runCode, isRunning }) => (
     <div className="flex justify-between items-center px-4 py-2 border-b border-gray-700">
@@ -345,7 +356,7 @@ const CallToActionSection = ({ isAuthenticated, user, handleGetStarted }) => (
       </h2>
       <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
         {isAuthenticated
-          ? `Keep up the great work, ${user?.fullName || "Developer"}! Your next challenge awaits.`
+          ? `Keep up the great work, ${user?.name || "Developer"}! Your next challenge awaits.`
           : "Start building the skills that land offers from top tech companies. Your journey begins here."}
       </p>
       <button

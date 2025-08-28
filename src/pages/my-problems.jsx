@@ -1,5 +1,123 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { handleError, handleSuccess } from '../utils';
+import { PlusCircle, Edit, Trash2, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+const PageHeader = () => {
+    const navigate = useNavigate();
+    return (
+        <div className="flex justify-between items-center mb-8">
+            <div>
+                <h1 className="text-3xl font-bold text-white">My Problems</h1>
+                <p className="text-gray-400">Manage the challenges you've created.</p>
+            </div>
+            <Button onClick={() => navigate('/create-problem')} className="bg-purple-600 hover:bg-purple-700 text-white font-semibold">
+                <PlusCircle className="mr-2 h-4 w-4" /> Create New Problem
+            </Button>
+        </div>
+    );
+};
+
+const ProblemTable = ({ problems, onEdit, onDelete }) => {
+    const getDifficultyBadge = (difficulty) => {
+        switch (difficulty) {
+            case 'Easy': return <Badge variant="outline" className="text-green-400 border-green-400">Easy</Badge>;
+            case 'Medium': return <Badge variant="outline" className="text-yellow-400 border-yellow-400">Medium</Badge>;
+            case 'Hard': return <Badge variant="outline" className="text-red-400 border-red-400">Hard</Badge>;
+            default: return <Badge variant="secondary">{difficulty}</Badge>;
+        }
+    };
+
+    return (
+        <Card className="bg-[#282828] border-gray-700">
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="border-gray-700 hover:bg-transparent">
+                            <TableHead className="text-white">Title</TableHead>
+                            <TableHead className="text-white">Difficulty</TableHead>
+                            <TableHead className="text-white">Created</TableHead>
+                            <TableHead className="text-right text-white">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {problems.map((problem) => (
+                            <TableRow key={problem._id} className="border-gray-700">
+                                <TableCell className="font-medium text-gray-300">{problem.title}</TableCell>
+                                <TableCell>{getDifficultyBadge(problem.difficulty)}</TableCell>
+                                <TableCell className="text-gray-400">{new Date(problem.createdAt).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-right space-x-2">
+                                    <Button variant="ghost" size="icon" onClick={() => onEdit(problem._id)}>
+                                        <Edit className="h-4 w-4 text-gray-400" />
+                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent className="bg-[#1A1A1A] border-gray-700 text-white">
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                <AlertDialogDescription className="text-gray-400">
+                                                    This action cannot be undone. This will permanently delete the problem "{problem.title}".
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel className="border-gray-600 hover:bg-gray-800">Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => onDelete(problem._id, problem.title)} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+};
+
+const Pagination = ({ pagination, onPageChange }) => (
+    <div className="flex justify-center items-center mt-8 space-x-2">
+        <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onPageChange(pagination.currentPage - 1)}
+            disabled={!pagination.hasPrev}
+            className="border-gray-600 hover:bg-gray-800"
+        >
+            <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-gray-400">
+            Page {pagination.currentPage} of {pagination.totalPages}
+        </span>
+        <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onPageChange(pagination.currentPage + 1)}
+            disabled={!pagination.hasNext}
+            className="border-gray-600 hover:bg-gray-800"
+        >
+            <ChevronRight className="h-4 w-4" />
+        </Button>
+    </div>
+);
 
 const MyProblems = () => {
     const [problems, setProblems] = useState([]);
@@ -9,221 +127,78 @@ const MyProblems = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetchMyProblems();
-    }, [currentPage]);
-
-    const fetchMyProblems = async () => {
-        try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/problems/my-problems?page=${currentPage}&limit=10`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setProblems(data.data.problems);
-                setPagination(data.data.pagination);
-            } else if (response.status === 403) {
-                window.showToast && window.showToast('Access denied. Only Problem_Setters and Admins can view this page.', 'error');
-                navigate('/dashboard');
-            } else {
-                console.error('Failed to fetch problems');
+        const fetchMyProblems = async () => {
+            setLoading(true);
+            try {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/problems/my-problems?page=${currentPage}&limit=10`, { credentials: 'include' });
+                if (response.ok) {
+                    const data = await response.json();
+                    setProblems(data.data.problems);
+                    setPagination(data.data.pagination);
+                } else if (response.status === 403) {
+                    handleError('Access denied. Only Problem Setters and Admins can view this page.');
+                    navigate('/dashboard');
+                } else {
+                    handleError('Failed to fetch your problems.');
+                }
+            } catch (error) {
+                handleError('An error occurred while fetching your problems.');
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error('Error fetching problems:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+        fetchMyProblems();
+    }, [currentPage, navigate]);
 
     const handleDelete = async (problemId, title) => {
-        if (!confirm(`Are you sure you want to delete "${title}"?`)) {
-            return;
-        }
-
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/problems/${problemId}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
-
             if (response.ok) {
-                window.showToast && window.showToast('Problem deleted successfully', 'success');
-                fetchMyProblems(); // Refresh the list
+                handleSuccess(`Problem "${title}" deleted successfully.`);
+                setCurrentPage(1); 
             } else {
                 const data = await response.json();
-                window.showToast && window.showToast(data.message || 'Failed to delete problem', 'error');
+                handleError(data.message || 'Failed to delete problem.');
             }
         } catch (error) {
-            console.error('Error deleting problem:', error);
-            window.showToast && window.showToast('Failed to delete problem', 'error');
+            handleError('An error occurred while deleting the problem.');
         }
     };
-
-    const getDifficultyColor = (difficulty) => {
-        switch (difficulty) {
-            case 'Easy': return 'text-green-600';
-            case 'Medium': return 'text-yellow-600';
-            case 'Hard': return 'text-red-600';
-            case 'Extreme': return 'text-purple-600';
-            default: return 'text-gray-600';
-        }
-    };
+    
+    const handleEdit = (problemId) => navigate(`/edit-problem/${problemId}`);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-white flex items-center justify-center pt-20">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-                    <p className="text-black font-medium">Loading your problems...</p>
-                </div>
+            <div className="flex items-center justify-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-white pt-20 pb-8 relative overflow-hidden">
-            {/* Background with blur effects */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white"></div>
-            <div className="absolute inset-0 backdrop-blur-sm"></div>
-            <div className="absolute left-1/4 top-1/4 w-[200px] h-[200px] rounded-full bg-black opacity-5 blur-[80px]"></div>
-            <div className="absolute right-1/4 bottom-1/4 w-[150px] h-[150px] rounded-full bg-gray-400 opacity-10 blur-[60px]"></div>
-            
-            <div className="relative container mx-auto px-6 max-w-6xl">
-                {/* Header Section */}
-                <div className="bg-white rounded-lg p-8 mb-8 border-2 border-black shadow-xl backdrop-blur-lg">
-                    <div className="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2 text-black">My Problems</h1>
-                            <p className="text-gray-600">Manage your created problems</p>
-                        </div>
-                        <button 
-                            onClick={() => navigate('/create-problem')}
-                            className="px-6 py-3 bg-black text-white hover:bg-gray-800 rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                        >
-                            Create New Problem
-                        </button>
-                    </div>
-                </div>
-
-                {/* Problems List */}
-                <div className="bg-white rounded-lg border-2 border-black shadow-xl backdrop-blur-lg">
-                    {problems.length === 0 ? (
-                        <div className="text-center py-12">
-                            <h3 className="text-xl font-medium mb-4 text-black">No problems created yet</h3>
-                            <p className="text-gray-600 mb-6">Start by creating your first problem!</p>
-                            <button 
-                                onClick={() => navigate('/create-problem')}
-                                className="px-6 py-3 bg-black text-white hover:bg-gray-800 rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
-                            >
-                                Create New Problem
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="p-6">
-                            <div className="space-y-4">
-                                {problems.map((problem) => (
-                                    <div key={problem._id} className="bg-gray-50 rounded-lg p-6 border-2 border-gray-200 hover:border-black transition-all duration-300">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex-1">
-                                                <h3 className="text-xl font-semibold mb-2 text-black">{problem.title}</h3>
-                                                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                                                    <span className={`font-medium ${getDifficultyColor(problem.difficulty)}`}>
-                                                        {problem.difficulty}
-                                                    </span>
-                                                    <span>Time: {problem.timeLimit}ms</span>
-                                                    <span>Memory: {problem.memoryLimit}MB</span>
-                                                    <span>Test Cases: {problem.testcases?.length || 0}</span>
-                                                    <span>Created: {new Date(problem.createdAt).toLocaleDateString()}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex space-x-2 ml-4">
-                                                <button 
-                                                    onClick={() => navigate(`/problem/${problem._id}`)}
-                                                    className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-black rounded text-sm transition-colors"
-                                                >
-                                                    View
-                                                </button>
-                                                <button 
-                                                    onClick={() => navigate(`/edit-problem/${problem._id}`)}
-                                                    className="px-3 py-1 bg-black text-white hover:bg-gray-800 rounded text-sm transition-colors"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDelete(problem._id, problem.title)}
-                                                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Tags */}
-                                        {problem.tags && problem.tags.length > 0 && (
-                                            <div className="flex flex-wrap gap-2 mb-3">
-                                                {problem.tags.map((tag, index) => (
-                                                    <span 
-                                                        key={index}
-                                                        className="px-2 py-1 bg-gray-200 text-black rounded-full text-xs border border-gray-300"
-                                                    >
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Description Preview */}
-                                        <div className="text-gray-700">
-                                            <p className="line-clamp-2">
-                                                {problem.description.length > 200 
-                                                    ? problem.description.substring(0, 200) + '...'
-                                                    : problem.description
-                                                }
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Pagination */}
-                {pagination.totalPages > 1 && (
-                    <div className="flex justify-center items-center mt-8 space-x-2">
-                        <button
-                            onClick={() => setCurrentPage(pagination.currentPage - 1)}
-                            disabled={!pagination.hasPrev}
-                            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors text-black border border-gray-300"
-                        >
-                            Previous
-                        </button>
-                        <div className="flex space-x-1">
-                            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
-                                <button
-                                    key={page}
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`px-3 py-2 rounded transition-colors border ${
-                                        page === pagination.currentPage
-                                            ? 'bg-black text-white border-black'
-                                            : 'bg-white text-black border-gray-300 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
-                        </div>
-                        <button
-                            onClick={() => setCurrentPage(pagination.currentPage + 1)}
-                            disabled={!pagination.hasNext}
-                            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors text-black border border-gray-300"
-                        >
-                            Next
-                        </button>
-                    </div>
-                )}
-            </div>
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <PageHeader />
+            {problems.length > 0 ? (
+                <>
+                    <ProblemTable problems={problems} onEdit={handleEdit} onDelete={handleDelete} />
+                    {pagination.totalPages > 1 && <Pagination pagination={pagination} onPageChange={setCurrentPage} />}
+                </>
+            ) : (
+                <Card className="bg-[#282828] border-gray-700 text-center py-12">
+                    <CardHeader>
+                        <CardTitle className="text-2xl text-white">No Problems Found</CardTitle>
+                        <CardDescription>You haven't created any problems yet. Let's change that!</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button onClick={() => navigate('/create-problem')} className="bg-purple-600 hover:bg-purple-700 text-white font-semibold">
+                            <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Problem
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 };

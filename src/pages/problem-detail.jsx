@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import Editor from '@monaco-editor/react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import SubmissionHistory from '../components/SubmissionHistory';
-import AIReview from '../components/AIReview';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import Editor from "@monaco-editor/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import SubmissionHistory from "../components/SubmissionHistory";
+import AIReview from "../components/AIReview";
 
 //==============================================================================
 // 1. CONSTANTS & HELPERS (Moved outside the component for performance)
@@ -15,12 +15,14 @@ const LANGUAGE_CONFIG = {
   cpp: {
     label: "C++",
     monaco: "cpp",
-    defaultCode: "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}",
+    defaultCode:
+      "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}",
   },
   java: {
     label: "Java",
     monaco: "java",
-    defaultCode: "public class Main {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}",
+    defaultCode:
+      "public class Main {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}",
   },
   python: {
     label: "Python",
@@ -30,11 +32,13 @@ const LANGUAGE_CONFIG = {
   c: {
     label: "C",
     monaco: "c",
-    defaultCode: "#include <stdio.h>\n\nint main() {\n    // Your code here\n    return 0;\n}",
+    defaultCode:
+      "#include <stdio.h>\n\nint main() {\n    // Your code here\n    return 0;\n}",
   },
 };
 
-const getLanguageConfig = (langValue) => LANGUAGE_CONFIG[langValue] || LANGUAGE_CONFIG.cpp;
+const getLanguageConfig = (langValue) =>
+  LANGUAGE_CONFIG[langValue] || LANGUAGE_CONFIG.cpp;
 
 const DIFFICULTY_CLASSES = {
   Easy: "text-green-400 bg-green-900/50 border border-green-700",
@@ -52,6 +56,39 @@ const VERDICT_CLASSES = {
   Pending: "text-blue-400",
 };
 
+const fetchSubmissionResult = async (submissionId) => {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_BACKEND_URL}/submission/${submissionId}`,
+      {
+        credentials: "include",
+      }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.data) return data.data;
+    }
+  } catch (err) {
+    console.error("Error fetching submission result:", err);
+  }
+  return null;
+};
+
+const fetchSubmissionWithPolling = async (
+  submissionId,
+  retries = 10,
+  delay = 500
+) => {
+  for (let i = 0; i < retries; i++) {
+    const data = await fetchSubmissionResult(submissionId);
+
+    if (!data) break;
+    if (data.verdict !== "Pending") return data; //Its not PENDING
+    await new Promise((res) => setTimeout(res, delay));
+  }
+
+  return await fetchSubmissionResult(submissionId);
+};
 
 //==============================================================================
 // 2. MAIN PAGE COMPONENT
@@ -64,8 +101,16 @@ export default function ProblemDetail() {
 
   // Grouped state for better organization and readability
   const [problem, setProblem] = useState(null);
-  const [pageState, setPageState] = useState({ loading: true, error: null, showSubmissions: false });
-  const [submission, setSubmission] = useState({ verdict: null, isSubmitting: false, hasSubmitted: false });
+  const [pageState, setPageState] = useState({
+    loading: true,
+    error: null,
+    showSubmissions: false,
+  });
+  const [submission, setSubmission] = useState({
+    verdict: null,
+    isSubmitting: false,
+    hasSubmitted: false,
+  });
   const [editor, setEditor] = useState({
     code: getLanguageConfig("cpp").defaultCode,
     language: "cpp",
@@ -75,8 +120,12 @@ export default function ProblemDetail() {
     showAIReview: false,
   });
 
-  const languageOptions = useMemo(() =>
-    Object.entries(LANGUAGE_CONFIG).map(([value, { label }]) => ({ value, label })),
+  const languageOptions = useMemo(
+    () =>
+      Object.entries(LANGUAGE_CONFIG).map(([value, { label }]) => ({
+        value,
+        label,
+      })),
     []
   );
 
@@ -84,24 +133,37 @@ export default function ProblemDetail() {
     if (!user?._id) return;
     try {
       setPageState({ loading: true, error: null, showSubmissions: false });
-      
-      const problemRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/problems/id/${id}`, { credentials: "include" });
-      if (!problemRes.ok) throw new Error((await problemRes.json()).message || 'Problem not found');
+
+      const problemRes = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/problems/id/${id}`,
+        { credentials: "include" }
+      );
+      if (!problemRes.ok)
+        throw new Error(
+          (await problemRes.json()).message || "Problem not found"
+        );
       const problemData = await problemRes.json();
       setProblem(problemData.data);
 
-      const subRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/submission/user/${user._id}`, { credentials: "include" });
+      const subRes = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/submission/user/${user._id}`,
+        { credentials: "include" }
+      );
       if (subRes.ok) {
         const subData = await subRes.json();
         const lastSubmission = subData.data?.submissions?.[0];
         if (lastSubmission) {
-          setSubmission(s => ({ ...s, verdict: lastSubmission.verdict, hasSubmitted: true }));
+          setSubmission((s) => ({
+            ...s,
+            verdict: lastSubmission.verdict,
+            hasSubmitted: true,
+          }));
         }
       }
     } catch (err) {
-      setPageState(p => ({ ...p, loading: false, error: err.message }));
+      setPageState((p) => ({ ...p, loading: false, error: err.message }));
     } finally {
-      setPageState(p => ({ ...p, loading: false }));
+      setPageState((p) => ({ ...p, loading: false }));
     }
   }, [id, user]);
 
@@ -110,19 +172,146 @@ export default function ProblemDetail() {
   }, [fetchProblemData]);
 
   const handleLanguageChange = (langValue) => {
-    setEditor(e => ({
+    setEditor((e) => ({
       ...e,
       language: langValue,
       code: getLanguageConfig(langValue).defaultCode,
     }));
   };
-  
-  const runCode = async () => { /* ... Your existing runCode logic, using setEditor to update state ... */ };
-  const submitCode = async () => { /* ... Your existing submitCode logic with polling, using setSubmission and window.showToast ... */ };
+
+  const runCode = useCallback(async () => {
+    // Read from editor state
+    if (!editor.code.trim()) {
+      // Update a single key in the editor state
+      setEditor((prev) => ({
+        ...prev,
+        output: "Please write some code first!",
+      }));
+      return;
+    }
+
+    // Update multiple keys at once
+    setEditor((prev) => ({
+      ...prev,
+      isRunning: true,
+      output: "> Running code...",
+    }));
+
+    try {
+      const compilerUrl = import.meta.env.VITE_COMPILER_URL;
+      if (!compilerUrl) {
+        throw new Error("Compiler URL is not defined");
+      }
+
+      const response = await fetch(`${compilerUrl}/submission/run-sample`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language: editor.language,
+          sourceCode: editor.code,
+          customInput:
+            editor.customInput.trim() === ""
+              ? "Hello, If no input.."
+              : editor.customInput,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        const newOutput =
+          result.output !== undefined ? result.output : "No output produced.";
+        setEditor((prev) => ({ ...prev, output: newOutput }));
+      } else {
+        const errorMessage =
+          result.error || result.stderr || "An unknown error occurred";
+        setEditor((prev) => ({ ...prev, output: `Error: ${errorMessage}` }));
+      }
+    } catch (error) {
+      setEditor((prev) => ({ ...prev, output: `Error: ${error.message}` }));
+    } finally {
+      setEditor((prev) => ({ ...prev, isRunning: false }));
+    }
+  }, [editor.code, editor.language, editor.customInput, setEditor]);
+
+  const submitCode = useCallback(async () => {
+    if (!editor.code.trim()) {
+      window.showToast?.("Please write some code first!", "warning");
+      return;
+    }
+
+    // Update submission state to show loading
+    setSubmission((prev) => ({ ...prev, isSubmitting: true, verdict: null }));
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/submission`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            problemId: id, // Assuming 'id' comes from useParams()
+            language: editor.language,
+            sourceCode: editor.code,
+          }),
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) navigate("/auth");
+        else window.showToast?.(result.message || "Submission failed", "error");
+        return;
+      }
+
+      if (result.success && result.submissionId) {
+        const verdictData = await fetchSubmissionWithPolling(
+          result.submissionId
+        );
+
+        if (verdictData) {
+          // Update submission state with the final verdict
+          setSubmission((prev) => ({
+            ...prev,
+            verdict: verdictData.verdict,
+            hasSubmitted: true,
+          }));
+
+          const verdictType =
+            verdictData.verdict === "Accepted" ? "success" : "error";
+          window.showToast?.(
+            `Verdict: ${verdictData.verdict}`,
+            verdictType,
+            5000
+          );
+        } else {
+          window.showToast?.("Submission is still processing...", "info");
+        }
+      }
+    } catch (error) {
+      window.showToast?.(
+        "Error submitting solution: " + error.message,
+        "error"
+      );
+    } finally {
+      // Update submission state to stop loading
+      setSubmission((prev) => ({ ...prev, isSubmitting: false }));
+    }
+  }, [
+    id,
+    editor.code,
+    editor.language,
+    setSubmission,
+    fetchSubmissionWithPolling,
+    navigate,
+  ]);
 
   // Conditional Rendering for page states
   if (pageState.loading) return <LoadingScreen />;
-  if (pageState.error) return <ErrorScreen error={pageState.error} onRetry={fetchProblemData} />;
+  if (pageState.error)
+    return <ErrorScreen error={pageState.error} onRetry={fetchProblemData} />;
   if (!problem) return <NotFoundScreen />;
 
   // Main Render
@@ -133,7 +322,9 @@ export default function ProblemDetail() {
           problem={problem}
           verdict={submission.verdict}
           showSubmissions={pageState.showSubmissions}
-          setShowSubmissions={(show) => setPageState(p => ({ ...p, showSubmissions: show }))}
+          setShowSubmissions={(show) =>
+            setPageState((p) => ({ ...p, showSubmissions: show }))
+          }
         />
         <RightColumn
           code={editor.code}
@@ -146,15 +337,21 @@ export default function ProblemDetail() {
           handleLanguageChange={handleLanguageChange}
           runCode={runCode}
           submitCode={submitCode}
-          setCode={code => setEditor(e => ({ ...e, code }))}
-          setCustomInput={customInput => setEditor(e => ({ ...e, customInput }))}
-          setOutput={output => setEditor(e => ({ ...e, output }))}
-          setShowAIReview={show => setEditor(e => ({ ...e, showAIReview: show }))}
+          setCode={(code) => setEditor((e) => ({ ...e, code }))}
+          setCustomInput={(customInput) =>
+            setEditor((e) => ({ ...e, customInput }))
+          }
+          setOutput={(output) => setEditor((e) => ({ ...e, output }))}
+          setShowAIReview={(show) =>
+            setEditor((e) => ({ ...e, showAIReview: show }))
+          }
         />
       </div>
       <AIReviewModal
         showAIReview={editor.showAIReview}
-        setShowAIReview={show => setEditor(e => ({ ...e, showAIReview: show }))}
+        setShowAIReview={(show) =>
+          setEditor((e) => ({ ...e, showAIReview: show }))
+        }
         code={editor.code}
         selectedLanguage={editor.language}
       />
@@ -162,18 +359,29 @@ export default function ProblemDetail() {
   );
 }
 
-
 //==============================================================================
 // 3. UI & LAYOUT COMPONENTS
 //==============================================================================
 
-const LeftColumn = ({ problem, verdict, showSubmissions, setShowSubmissions }) => (
+const LeftColumn = ({
+  problem,
+  verdict,
+  showSubmissions,
+  setShowSubmissions,
+}) => (
   <div className="flex flex-col gap-4 overflow-y-auto pr-2">
     {showSubmissions ? (
-      <SubmissionsView setShowSubmissions={setShowSubmissions} problemId={problem._id} />
+      <SubmissionsView
+        setShowSubmissions={setShowSubmissions}
+        problemId={problem._id}
+      />
     ) : (
       <>
-        <ProblemHeader problem={problem} verdict={verdict} setShowSubmissions={setShowSubmissions} />
+        <ProblemHeader
+          problem={problem}
+          verdict={verdict}
+          setShowSubmissions={setShowSubmissions}
+        />
         <ProblemDescription description={problem.descriptionMarkdown} />
         <SampleTestCases testCases={problem.testcases} />
       </>
@@ -187,7 +395,10 @@ const RightColumn = (props) => (
       <CodeEditorPanel {...props} />
     </div>
     <div className="flex-shrink-0 grid grid-cols-2 gap-4 h-[35%]">
-      <CustomInputPanel customInput={props.customInput} setCustomInput={props.setCustomInput} />
+      <CustomInputPanel
+        customInput={props.customInput}
+        setCustomInput={props.setCustomInput}
+      />
       <OutputPanel output={props.output} />
     </div>
   </div>
@@ -207,14 +418,27 @@ const ProblemHeader = ({ problem, verdict, setShowSubmissions }) => (
       </button>
     </div>
     <div className="flex items-center gap-4 text-sm mb-4">
-      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${DIFFICULTY_CLASSES[problem.difficulty] || 'bg-gray-700 text-gray-300'}`}>
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+          DIFFICULTY_CLASSES[problem.difficulty] || "bg-gray-700 text-gray-300"
+        }`}
+      >
         {problem.difficulty}
       </span>
-      {verdict && <span className={`font-bold ${VERDICT_CLASSES[verdict]}`}>{verdict}</span>}
+      {verdict && (
+        <span className={`font-bold ${VERDICT_CLASSES[verdict]}`}>
+          {verdict}
+        </span>
+      )}
     </div>
     <div className="flex flex-wrap gap-2">
-      {problem.tags?.map(tag => (
-        <span key={tag} className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full">{tag}</span>
+      {problem.tags?.map((tag) => (
+        <span
+          key={tag}
+          className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full"
+        >
+          {tag}
+        </span>
       ))}
     </div>
   </div>
@@ -229,7 +453,7 @@ const ProblemDescription = ({ description }) => (
 );
 
 const SampleTestCases = ({ testCases }) => {
-  const samples = testCases?.filter(tc => tc.isSample);
+  const samples = testCases?.filter((tc) => tc.isSample);
   if (!samples || samples.length === 0) return null;
 
   return (
@@ -237,11 +461,17 @@ const SampleTestCases = ({ testCases }) => {
       <h2 className="text-lg font-semibold text-white mb-3">Sample Cases</h2>
       {samples.map((tc, index) => (
         <div key={index} className="mb-4">
-          <h3 className="text-sm font-medium text-gray-400 mb-2">Example {index + 1}:</h3>
+          <h3 className="text-sm font-medium text-gray-400 mb-2">
+            Example {index + 1}:
+          </h3>
           <p className="text-sm font-semibold text-white mb-1">Input:</p>
-          <pre className="bg-[#1A1A1A] p-2 rounded-md text-gray-300 font-mono text-xs border border-gray-700">{tc.input}</pre>
+          <pre className="bg-[#1A1A1A] p-2 rounded-md text-gray-300 font-mono text-xs border border-gray-700">
+            {tc.input}
+          </pre>
           <p className="text-sm font-semibold text-white mt-2 mb-1">Output:</p>
-          <pre className="bg-[#1A1A1A] p-2 rounded-md text-gray-300 font-mono text-xs border border-gray-700">{tc.output}</pre>
+          <pre className="bg-[#1A1A1A] p-2 rounded-md text-gray-300 font-mono text-xs border border-gray-700">
+            {tc.output}
+          </pre>
         </div>
       ))}
     </div>
@@ -265,27 +495,39 @@ const SubmissionsView = ({ problemId, setShowSubmissions }) => (
   </div>
 );
 
-
 const CodeEditorPanel = (props) => (
   <div className="bg-[#282828] rounded-lg border border-gray-700 flex flex-col h-full">
     <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 flex-shrink-0">
       <select
         value={props.language}
-        onChange={e => props.handleLanguageChange(e.target.value)}
+        onChange={(e) => props.handleLanguageChange(e.target.value)}
         className="bg-transparent text-white border-none focus:ring-0 text-sm p-1 rounded hover:bg-[#3c3c3c]"
       >
-        {props.languageOptions.map(opt => (
-          <option key={opt.value} value={opt.value} className="bg-[#282828]">{opt.label}</option>
+        {props.languageOptions.map((opt) => (
+          <option key={opt.value} value={opt.value} className="bg-[#282828]">
+            {opt.label}
+          </option>
         ))}
       </select>
       <div className="flex items-center gap-2">
-        <button onClick={props.runCode} disabled={props.isRunning} className="text-sm bg-[#3c3c3c] hover:bg-[#4a4a4a] disabled:bg-gray-800 disabled:text-gray-500 px-3 py-1 rounded-md transition">
-          {props.isRunning ? 'Running...' : 'Run'}
+        <button
+          onClick={props.runCode}
+          disabled={props.isRunning}
+          className="text-sm bg-[#3c3c3c] hover:bg-[#4a4a4a] disabled:bg-gray-800 disabled:text-gray-500 px-3 py-1 rounded-md transition"
+        >
+          {props.isRunning ? "Running..." : "Run"}
         </button>
-        <button onClick={props.submitCode} disabled={props.isSubmitting} className="text-sm bg-green-600 hover:bg-green-500 disabled:bg-green-900 disabled:text-gray-400 text-white font-semibold px-3 py-1 rounded-md transition">
-          {props.isSubmitting ? 'Submitting...' : 'Submit'}
+        <button
+          onClick={props.submitCode}
+          disabled={props.isSubmitting}
+          className="text-sm bg-green-600 hover:bg-green-500 disabled:bg-green-900 disabled:text-gray-400 text-white font-semibold px-3 py-1 rounded-md transition"
+        >
+          {props.isSubmitting ? "Submitting..." : "Submit"}
         </button>
-        <button onClick={() => props.setShowAIReview(true)} className="text-sm bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded-md transition">
+        <button
+          onClick={() => props.setShowAIReview(true)}
+          className="text-sm bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded-md transition"
+        >
           AI Review
         </button>
       </div>
@@ -296,7 +538,7 @@ const CodeEditorPanel = (props) => (
         language={getLanguageConfig(props.language).monaco}
         value={props.code}
         onChange={props.setCode}
-        options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: 'on' }}
+        options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: "on" }}
       />
     </div>
   </div>
@@ -304,10 +546,12 @@ const CodeEditorPanel = (props) => (
 
 const CustomInputPanel = ({ customInput, setCustomInput }) => (
   <div className="bg-[#282828] rounded-lg border border-gray-700 flex flex-col h-full">
-    <h3 className="text-sm font-medium text-white px-3 py-2 border-b border-gray-700">Custom Input</h3>
+    <h3 className="text-sm font-medium text-white px-3 py-2 border-b border-gray-700">
+      Custom Input
+    </h3>
     <textarea
       value={customInput}
-      onChange={e => setCustomInput(e.target.value)}
+      onChange={(e) => setCustomInput(e.target.value)}
       placeholder="Enter custom input for 'Run'..."
       className="w-full h-full bg-transparent text-gray-300 p-3 resize-none focus:outline-none font-mono text-sm"
     />
@@ -316,7 +560,9 @@ const CustomInputPanel = ({ customInput, setCustomInput }) => (
 
 const OutputPanel = ({ output }) => (
   <div className="bg-[#282828] rounded-lg border border-gray-700 flex flex-col h-full">
-    <h3 className="text-sm font-medium text-white px-3 py-2 border-b border-gray-700">Output</h3>
+    <h3 className="text-sm font-medium text-white px-3 py-2 border-b border-gray-700">
+      Output
+    </h3>
     <pre className="text-sm text-gray-300 p-3 overflow-y-auto font-mono h-full whitespace-pre-wrap">
       {output || "> Run code to see output..."}
     </pre>
@@ -325,16 +571,27 @@ const OutputPanel = ({ output }) => (
 
 // --- Modals and Loading/Error Screens ---
 
-const LoadingScreen = () => <div className="h-screen bg-[#1A1A1A] flex items-center justify-center text-white text-lg">Loading Problem...</div>;
-const ErrorScreen = ({ error, onRetry }) => (
-    <div className="h-screen bg-[#1A1A1A] flex flex-col items-center justify-center text-red-400">
-        <p className="text-lg mb-4">Error: {error}</p>
-        <button onClick={onRetry} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
-            Try Again
-        </button>
-    </div>
+const LoadingScreen = () => (
+  <div className="h-screen bg-[#1A1A1A] flex items-center justify-center text-white text-lg">
+    Loading Problem...
+  </div>
 );
-const NotFoundScreen = () => <div className="h-screen bg-[#1A1A1A] flex items-center justify-center text-white text-lg">Problem Not Found</div>;
+const ErrorScreen = ({ error, onRetry }) => (
+  <div className="h-screen bg-[#1A1A1A] flex flex-col items-center justify-center text-red-400">
+    <p className="text-lg mb-4">Error: {error}</p>
+    <button
+      onClick={onRetry}
+      className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+    >
+      Try Again
+    </button>
+  </div>
+);
+const NotFoundScreen = () => (
+  <div className="h-screen bg-[#1A1A1A] flex items-center justify-center text-white text-lg">
+    Problem Not Found
+  </div>
+);
 // const AIReviewModal = ({ showAIReview, setShowAIReview, code, selectedLanguage }) => {
 //     if (!showAIReview) return null;
 //     return (
@@ -351,7 +608,12 @@ const NotFoundScreen = () => <div className="h-screen bg-[#1A1A1A] flex items-ce
 //         </div>
 //     );
 // };
-const AIReviewModal = ({ showAIReview, setShowAIReview, code, selectedLanguage }) => {
+const AIReviewModal = ({
+  showAIReview,
+  setShowAIReview,
+  code,
+  selectedLanguage,
+}) => {
   if (!showAIReview) {
     return null;
   }
@@ -403,7 +665,12 @@ const ModalHeader = ({ setShowAIReview }) => (
       onClick={() => setShowAIReview(false)}
       className="text-gray-600 hover:text-black transition-colors"
     >
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg
+        className="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -417,11 +684,7 @@ const ModalHeader = ({ setShowAIReview }) => (
 
 const ModalContent = ({ code, language, onClose }) => (
   <div className="flex-1 bg-white text-black overflow-hidden">
-    <AIReview
-      code={code}
-      language={language}
-      onClose={onClose}
-    />
+    <AIReview code={code} language={language} onClose={onClose} />
   </div>
 );
 
