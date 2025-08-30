@@ -228,15 +228,31 @@ export default function ProblemDetail() {
       });
 
       const result = await response.json();
+      if (result.code !== 0 && result.stderr) {
+        // This is a compilation or runtime error.
+        const stdoutContent = result.stdout ? `Output:\n${result.stdout}\n\n` : "";
+        // The detailed error message from the backend is in result.stderr
+        const stderrContent = result.stderr || "An error occurred."; 
+        const combinedOutput = `${stdoutContent}Error:\n${stderrContent}`;
 
-      if (response.ok) {
+        setEditor((prev) => ({ ...prev, output: combinedOutput }));
+
+      }else if (response.ok) {
         const newOutput =
           result.output !== undefined ? result.output : "No output produced.";
         setEditor((prev) => ({ ...prev, output: newOutput }));
       } else {
-        const errorMessage =
-          result.error || result.stderr || "An unknown error occurred";
-        setEditor((prev) => ({ ...prev, output: `Error: ${errorMessage}` }));
+        // const errorMessage =
+        //   result.error || result.stderr || "An unknown error occurred";
+        // setEditor((prev) => ({ ...prev, output: `Error: ${errorMessage}` }));
+
+        const stdoutContent = result.stdout ? `${result.stdout}\n` : "";
+        const stderrContent = result.stderr || result.error || "An unknown error occurred";
+        
+        // We check for both because some errors might not produce stderr
+        const combinedOutput = `${stdoutContent}Error: ${stderrContent}`;
+
+        setEditor((prev) => ({ ...prev, output: combinedOutput }));
       }
     } catch (error) {
       setEditor((prev) => ({ ...prev, output: `Error: ${error.message}` }));
@@ -297,11 +313,22 @@ export default function ProblemDetail() {
             verdictType,
             5000
           );
+
+          if (verdictData.verdict !== "Accepted") {
+          const errorOutput = 
+            `Verdict: ${verdictData.verdict}\n\n` +
+            `--- Details ---\n` +
+            `${verdictData.errorDetails || "No specific error details were provided."}`;
+
+          // Update the output panel with the detailed error.
+          setEditor((prev) => ({ ...prev, output: errorOutput }));
+        }
         } else {
           window.showToast?.("Submission is still processing...", "info");
         }
       }
     } catch (error) {
+      console.error("Submission failed:", error); //for debugging.
       window.showToast?.(
         "Error submitting solution: " + error.message,
         "error"

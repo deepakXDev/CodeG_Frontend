@@ -2,8 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback,useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import AIFeatureModal from "../components/AIFeatureModal";
-import { LayoutBackground } from "@/components/MainLayout";
-// import TweakWrapper from "../utils/TweakWrapper";
+
 
 //==============================================================================
 // 1. CONSTANTS & HELPERS (Moved outside the component for performance)
@@ -111,50 +110,76 @@ export default function Home() {
   }, []);
 
 
-const runCode = useCallback(async () => {
-  if (!editor.code.trim()) {
-    setEditor(prev => ({ ...prev, output: "Please write some code first!" }));
-    return;
-  }
-
-  // Update multiple keys in the editor state
-  setEditor(prev => ({ ...prev, isRunning: true, output: "> Running code..." }));
-
-  try {
-    const compilerUrl = import.meta.env.VITE_COMPILER_URL;
-    if (!compilerUrl) {
-      throw new Error("Compiler URL is not defined in environment variables");
+ const runCode = useCallback(async () => {
+    // Read from editor state
+    if (!editor.code.trim()) {
+      // Update a single key in the editor state
+      setEditor((prev) => ({
+        ...prev,
+        output: "Please write some code first!",
+      }));
+      return;
     }
 
-    const response = await fetch(`${compilerUrl}/submission/run-sample`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        // Read values from the editor state
-        language: editor.language,
-        sourceCode: editor.code,
-        customInput:
-          editor.customInput.trim() === "" ? "Hello, If no input.." : editor.customInput,
-      }),
-    });
+    // Update multiple keys at once
+    setEditor((prev) => ({
+      ...prev,
+      isRunning: true,
+      output: "> Running code...",
+    }));
 
-    const result = await response.json();
+    try {
+      const compilerUrl = import.meta.env.VITE_COMPILER_URL;
+      if (!compilerUrl) {
+        throw new Error("Compiler URL is not defined");
+      }
 
-    if (response.ok) {
-      const newOutput = result.output !== undefined ? result.output : "Execution finished, but no output was produced.";
-      setEditor(prev => ({ ...prev, output: newOutput }));
-    } else {
-      const errorMessage = result.error || result.stderr || "An unknown error occurred";
-      setEditor(prev => ({ ...prev, output: `Error: ${errorMessage}` }));
+      const response = await fetch(`${compilerUrl}/submission/run-sample`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language: editor.language,
+          sourceCode: editor.code,
+          customInput:
+            editor.customInput.trim() === ""
+              ? "Hello, If no input.."
+              : editor.customInput,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.code !== 0 && result.stderr) {
+        // This is a compilation or runtime error.
+        const stdoutContent = result.stdout ? `Output:\n${result.stdout}\n\n` : "";
+        // The detailed error message from the backend is in result.stderr
+        const stderrContent = result.stderr || "An error occurred."; 
+        const combinedOutput = `${stdoutContent}Error:\n${stderrContent}`;
+
+        setEditor((prev) => ({ ...prev, output: combinedOutput }));
+
+      }else if (response.ok) {
+        const newOutput =
+          result.output !== undefined ? result.output : "No output produced.";
+        setEditor((prev) => ({ ...prev, output: newOutput }));
+      } else {
+        // const errorMessage =
+        //   result.error || result.stderr || "An unknown error occurred";
+        // setEditor((prev) => ({ ...prev, output: `Error: ${errorMessage}` }));
+
+        const stdoutContent = result.stdout ? `${result.stdout}\n` : "";
+        const stderrContent = result.stderr || result.error || "An unknown error occurred";
+        
+        // We check for both because some errors might not produce stderr
+        const combinedOutput = `${stdoutContent}Error: ${stderrContent}`;
+
+        setEditor((prev) => ({ ...prev, output: combinedOutput }));
+      }
+    } catch (error) {
+      setEditor((prev) => ({ ...prev, output: `Error: ${error.message}` }));
+    } finally {
+      setEditor((prev) => ({ ...prev, isRunning: false }));
     }
-  } catch (error) {
-    setEditor(prev => ({ ...prev, output: `Error: ${error.message}` }));
-  } finally {
-    setEditor(prev => ({ ...prev, isRunning: false }));
-  }
-}, [editor.code, editor.language, editor.customInput, setEditor]); // The dependency array now includes setEditor
+  }, [editor.code, editor.language, editor.customInput, setEditor]);
 
   const handleGetStarted = useCallback(() => {
     navigate(auth.isAuthenticated ? "/dashboard" : "/auth");
@@ -174,7 +199,6 @@ const runCode = useCallback(async () => {
 
   return (
     <div className="bg-[#1A1A1A] text-gray-300 font-sans relative overflow-hidden">
-        <LayoutBackground />
       <HeroSection
         isAuthenticated={auth.isAuthenticated}
         handleGetStarted={handleGetStarted}
