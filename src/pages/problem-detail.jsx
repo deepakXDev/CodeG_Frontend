@@ -407,7 +407,7 @@ const LeftColumn = ({
   showSubmissions,
   setShowSubmissions,
 }) => (
-  <div className="flex flex-col gap-4 overflow-y-auto pr-2">
+  <div className="flex flex-col gap-4 overflow-y-auto pr-2 h-full min-w-0">
     {showSubmissions ? (
       <SubmissionsView
         setShowSubmissions={setShowSubmissions}
@@ -428,7 +428,7 @@ const LeftColumn = ({
 );
 
 const RightColumn = (props) => (
-  <div className="flex flex-col gap-4 h-full">
+  <div className="flex flex-col gap-4 h-full overflow-hidden min-w-0">
     <div className="flex-grow min-h-0">
       <CodeEditorPanel {...props} />
     </div>
@@ -591,21 +591,22 @@ const CustomInputPanel = ({ customInput, setCustomInput }) => (
       value={customInput}
       onChange={(e) => setCustomInput(e.target.value)}
       placeholder="Enter custom input for 'Run'..."
-      className="w-full h-full bg-transparent text-gray-300 p-3 resize-none focus:outline-none font-mono text-sm"
+      className="w-full h-full overflow-auto  bg-transparent text-gray-300 p-3 resize-none focus:outline-none font-mono text-sm"
     />
   </div>
 );
 
 const OutputPanel = ({ output }) => (
-  <div className="bg-[#282828] rounded-lg border border-gray-700 flex flex-col h-full">
-    <h3 className="text-sm font-medium text-white px-3 py-2 border-b border-gray-700">
+  <div className="bg-[#282828] rounded-lg border border-gray-700 flex flex-col h-full min-h-0">
+    <h3 className="text-sm font-medium text-white px-3 py-2 border-b border-gray-700 flex-shrink-0">
       Output
     </h3>
-    <pre className="text-sm text-gray-300 p-3 overflow-y-auto font-mono h-full whitespace-pre-wrap">
+    <pre className="text-sm text-gray-300 p-3 font-mono whitespace-pre flex-grow min-h-0 overflow-auto">
       {output || "> Run code to see output..."}
     </pre>
   </div>
 );
+
 
 // --- Modals and Loading/Error Screens ---
 
