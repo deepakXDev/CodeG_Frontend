@@ -1,157 +1,157 @@
-<!-- # CodeJudge - Frontend
+```markdown
+# CodeG - The AI-Powered Online Judge Platform
 
-This is the frontend component of the CodeJudge online judge platform. It's built with React and Vite, providing a modern and responsive user interface for interacting with the platform.
+CodeG is a modern, full-featured web platform for practicing coding problems, managing submissions, and receiving AI-powered feedback. Built with **React**, it provides a seamless and modular frontend experience for both competitive programmers and students learning to code, with distinct user roles for problem setters and standard users.
 
-## Features
+---
 
-- **User Authentication**
-  - Secure login/register with hCaptcha protection
-  - JWT-based authentication with HTTP-only cookies
-  - Role-based UI elements
+## 📑 Table of Contents
+- [About The Project](#about-the-project)
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [License](#license)
 
-- **Problem Management**
-  - Browse and search problems
-  - Filter by difficulty and tags
-  - Rich problem display with Markdown support
-  - Problem creation and editing for Problem_Setters and Admins
+---
 
-- **Code Submission**
-  - Monaco Editor with syntax highlighting
-  - Support for multiple programming languages
-  - Custom input testing
-  - Submission history viewing
+## 📖 About The Project
+This project is the **frontend for CodeG**, an online judge system designed to be robust, scalable, and user-friendly.  
 
-- **AI-Powered Features**
-  - AI code review with Google Gemini integration
+The application is architected as a **Single Page Application (SPA)** using **React** and **react-router-dom** for navigation.  
 
-## Tech Stack
+It features:
+- Complete authentication flow
+- Role-based access control
+- Comprehensive problem management
+- Detailed submission tracking system
 
-- **React** - UI library
-- **Vite** - Build tool and development server
-- **React Router** - Client-side routing
-- **TailwindCSS** - Utility-first CSS framework
-- **Monaco Editor** - Code editor
-- **hCaptcha** - Bot prevention
+✨ A standout feature is the **AI review system**, which provides users with insightful feedback on their code submissions — going beyond simple pass/fail test cases.
 
-## Project Structure
+The entire codebase is modular and maintainable, with a clear separation of concerns between UI components, page-level logic, and state management.
+
+---
+
+## 🚀 Key Features
+
+- 🔐 **Comprehensive Authentication & Authorization**  
+  Secure user registration (Register) and login (Login) components, managed globally via `AuthContext`.  
+  Includes OTP verification, session management, and a `UserDropdown` for profile/logout actions.
+
+- 🔒 **Role-Based Access**  
+  A `PrivateRoute` component protects routes, ensuring only authenticated users can access them.  
+  Supports a **Problem Setter** role with permissions to create/manage problems.
+
+- 👤 **User Profile Management**  
+  Users can view their profile (`Profile`) and update details via `EditProfile`.
+
+- 💻 **Advanced Problem Management**  
+  - Browse challenges on the `Problems` page  
+  - Detailed `ProblemDetail` page (description, constraints, submission UI)  
+  - Problem Setters can add challenges via `CreateProblem`, which go through an approval workflow  
+
+- 🚀 **Detailed Submission Tracking**  
+  - `SubmissionsPage` and `SubmissionHistory` for attempt history  
+  - Real-time tracking of statuses (Pending, Compiling, Accepted, Wrong Answer, etc.)
+
+- 🤖 **AI-Powered Code Review**  
+  Automated feedback via `AIReview` for logic, efficiency, and style improvements.
+
+- 📊 **Personalized Dashboard**  
+  Displays user statistics, recent submissions, and progress bars.
+
+- 🎨 **Modern UI/UX**  
+  Clean, responsive `MainLayout`, shared `Header`, and toast notifications.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: React  
+- **Routing**: React Router DOM  
+- **State Management**: React Context API (`AuthContext`)  
+- **API Communication**: Fetch API / Axios  
+- **Build Tool**: Vite / Create React App  
+
+---
+
+## 📂 Project Structure
 
 ```
-frontend/
-├── public/           # Static assets
-├── src/
-│   ├── components/   # Reusable UI components
-│   ├── contexts/     # React context providers
-│   ├── hooks/        # Custom React hooks
-│   ├── lib/          # Utility libraries
-│   ├── pages/        # Page components
-│   ├── utils/        # Utility functions
-│   ├── App.jsx       # Main application component
-│   ├── main.jsx      # Application entry point
-│   └── index.css     # Global styles
-├── .env              # Environment variables
-├── index.html        # HTML template
-├── package.json      # Dependencies and scripts
-└── vite.config.js    # Vite configuration
-```
 
-## Getting Started
+/src
+│
+├── /components             # Reusable UI components
+│   ├── AIReview\.jsx
+│   ├── Header.jsx
+│   ├── Login.jsx
+│   ├── PrivateRoute.jsx
+│   ├── Register.jsx
+│   ├── SubmissionHistory.jsx
+│   ├── Toast.jsx
+│   ├── UserDropdown.jsx
+│   └── MainLayout.jsx
+│
+├── /contexts               # Global state management
+│   └── AuthContext.jsx
+│
+├── /pages                  # Top-level route components
+│   ├── create-problem.jsx
+│   ├── dashboard.jsx
+│   ├── edit-profile.jsx
+│   ├── home.jsx
+│   ├── my-problems.jsx
+│   ├── notFoundPage.jsx
+│   ├── problem-detail.jsx
+│   ├── problems.jsx
+│   └── SubmissionsPage.jsx
+│
+├── /utils                  # Utility functions and services
+│   └── apiService.js
+│
+├── App.jsx                 # Main application component with routing logic
+└── index.js                # Entry point of the application
 
-### Prerequisites
+````
 
-- Node.js v18 or later
-- npm or bun
+---
 
-### Installation
+## ⚡ Getting Started
 
-1. Clone the repository
-2. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-3. Install dependencies:
-   ```bash
-   npm install
-   # or
-   bun install
-   ```
-4. Create a `.env` file with the following variables:
-   ```
-   VITE_BACKEND_URL=http://localhost:8000/api/v1
-   VITE_COMPILER_URL=http://localhost:8080
-   VITE_HCAPTCHA_KEY=your_hcaptcha_site_key
-   ```
-5. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   bun run dev
-   ```
+Follow these simple steps to run the project locally:
 
-## Building for Production
+### ✅ Prerequisites
+- Node.js (v16 or later)
+- npm or yarn
 
+### 🔧 Installation
 ```bash
-npm run build
-# or
-bun run build
+# Clone the repository
+git clone https://github.com/your-username/your-repo-name.git
+
+# Navigate to the project directory
+cd your-repo-name
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+````
+
+Your application should now be running at:
+👉 [http://localhost:5173](http://localhost:5173) (or another available port).
+
+---
+
+## 📜 License
+
+This project is distributed under the **MIT License**.
+See [LICENSE.md](LICENSE.md) for details.
+
 ```
 
-The built files will be in the `dist` directory, ready to be deployed to any static hosting service.
+---
 
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint
-
-## Environment Variables
-
-| Variable | Description | Required |
-| --- | --- | --- |
-| `VITE_BACKEND_URL` | URL of the backend API | Yes |
-| `VITE_COMPILER_URL` | URL of the compiler service | Yes |
-| `VITE_HCAPTCHA_KEY` | hCaptcha site key | Yes |
-
-## Component Documentation
-
-### Auth Components
-- `login.jsx` - Login form with hCaptcha integration
-- `register.jsx` - Registration form with hCaptcha integration
-
-### Problem Components
-- `create-problem.jsx` - Form for creating new problems
-- `edit-problem.jsx` - Form for editing existing problems
-- `problem-detail.jsx` - Detailed view of a problem with code submission
-- `problems.jsx` - List of all problems with search and filter
-
-### User Components
-- `profile.jsx` - User profile page
-- `edit-profile.jsx` - Form for editing user profile
-
-### Submission Components
-- `SubmissionHistory.jsx` - Displays user's submission history
-- `SubmissionsPage.jsx` - Page for viewing all submissions
-
-### UI Components
-- `Header.jsx` - Application header with navigation
-- `Toast.jsx` - Toast notification system
-- `Modal.jsx` - Reusable modal dialog
-- `AIReview.jsx` - Component for AI code review
-
-## Auth Context
-
-The `AuthContext` provides authentication-related functionality throughout the application:
-
-```jsx
-import { useAuth } from '../contexts/AuthContext';
-
-function MyComponent() {
-  const { user, isAuthenticated, login, logout } = useAuth();
-  
-  // Use auth context
-}
+Would you like me to also add **badges** (like React, Vite, MIT License, etc.) at the top of the README to make it look more professional?
 ```
-
-## License
-
-This project is licensed under the MIT License. -->
